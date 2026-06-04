@@ -1,0 +1,62 @@
+[31-May-2025 06:28:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'root'@'localhost' (using password: NO) in /home/acesdin/dsaedu.com/teacher/index.php:16
+Stack trace:
+#0 /home/acesdin/dsaedu.com/teacher/index.php(16): mysqli->__construct()
+#1 {main}
+  thrown in /home/acesdin/dsaedu.com/teacher/index.php on line 16
+[31-May-2025 06:28:53 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'root'@'localhost' (using password: NO) in /home/acesdin/dsaedu.com/teacher/index.php:16
+Stack trace:
+#0 /home/acesdin/dsaedu.com/teacher/index.php(16): mysqli->__construct()
+#1 {main}
+  thrown in /home/acesdin/dsaedu.com/teacher/index.php on line 16
+[31-May-2025 06:29:53 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'root'@'localhost' (using password: NO) in /home/acesdin/dsaedu.com/teacher/index.php:16
+Stack trace:
+#0 /home/acesdin/dsaedu.com/teacher/index.php(16): mysqli->__construct()
+#1 {main}
+  thrown in /home/acesdin/dsaedu.com/teacher/index.php on line 16
+[31-May-2025 06:30:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'root'@'localhost' (using password: NO) in /home/acesdin/dsaedu.com/teacher/index.php:16
+Stack trace:
+#0 /home/acesdin/dsaedu.com/teacher/index.php(16): mysqli->__construct()
+#1 {main}
+  thrown in /home/acesdin/dsaedu.com/teacher/index.php on line 16
+[16-Jun-2025 17:02:58 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:03:21 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:07:20 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:07:22 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:07:25 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:07:55 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:08:24 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'acesdin_dsa'@'localhost' (using password: YES) in /home/dsaedu/public_html/teacher/index.php:18
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(18): mysqli->__construct()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:09:02 UTC] PHP Warning:  Undefined variable $database in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:09:40 UTC] PHP Warning:  Undefined variable $database in /home/dsaedu/public_html/teacher/index.php on line 18
+[16-Jun-2025 17:09:40 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: No database selected in /home/dsaedu/public_html/teacher/index.php:32
+Stack trace:
+#0 /home/dsaedu/public_html/teacher/index.php(32): mysqli->query()
+#1 {main}
+  thrown in /home/dsaedu/public_html/teacher/index.php on line 32
