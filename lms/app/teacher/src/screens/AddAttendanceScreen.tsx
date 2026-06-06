@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, Pressable, StyleSheet, Alert, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { FormPicker } from '../components/FormPicker';
-import { FormInput } from '../components/FormInput';
+import { FormDateInput } from '../components/FormDateInput';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 
 export default function AddAttendanceScreen() {
+  const navigation = useNavigation<any>();
   const [sessions, setSessions] = useState<{ label: string; value: string }[]>([]);
   const [courses, setCourses] = useState<{ label: string; value: string }[]>([]);
   const [batches, setBatches] = useState<{ label: string; value: string }[]>([]);
@@ -45,9 +47,11 @@ export default function AddAttendanceScreen() {
       setBatches([]);
       return;
     }
-    LmsApi.formBatches(course).then((b: any) => {
-      setBatches((b.batches ?? []).map((name: string) => ({ label: name, value: name })));
-    });
+    LmsApi.formBatches(course)
+      .then((b: any) => {
+        setBatches((b.batches ?? []).map((name: string) => ({ label: name, value: name })));
+      })
+      .catch(() => setBatches([]));
   }, [course]);
 
   const loadStudents = useCallback(async () => {
@@ -93,9 +97,12 @@ export default function AddAttendanceScreen() {
   }
 
   return (
-    <ScreenLayout title="Add Attendance" subtitle="Mark present / absent">
+    <ScreenLayout
+      title="Add Attendance"
+      subtitle="Mark present / absent"
+      onBack={() => navigation.navigate('AttendanceHub')}>
       <Card>
-        <FormInput label="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} />
+        <FormDateInput label="Date" value={date} onChange={setDate} />
         <FormPicker label="Session" value={session} options={sessions} onChange={setSession} />
         <FormPicker label="Course" value={course} options={courses} onChange={v => { setCourse(v); setBatch(''); }} />
         <FormPicker label="Batch" value={batch} options={batches} onChange={setBatch} disabled={!course} />

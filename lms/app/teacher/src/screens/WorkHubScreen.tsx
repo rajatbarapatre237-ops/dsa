@@ -1,21 +1,223 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
+import { Text, StyleSheet, View, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
-import { MenuTile } from '../components/Card';
+import { ActionCard, Card } from '../components/Card';
+import { LmsApi } from '../api/lms';
+import { theme } from '../ui/theme';
+import { settleApiCalls } from '../utils/apiError';
 import { WorkStackParamList } from '../navigation/types';
+
+function isActiveAssignment(item: any) {
+  return item.status === 1 || item.status === '1' || item.status === true;
+}
+
+function isMeaningfulAssignment(item: any) {
+  const name = String(item.document_name ?? '').trim();
+  const batch = String(item.batch_name ?? '').trim();
+  return !!(name || batch);
+}
+
+function assignmentLabel(item: any) {
+  const name = String(item.document_name ?? '').trim();
+  if (name) return name;
+  const batch = String(item.batch_name ?? '').trim();
+  if (batch) return `Assignment for ${batch}`;
+  return 'Untitled assignment';
+}
 
 export default function WorkHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
+  const [loading, setLoading] = useState(true);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [tests, setTests] = useState<any[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [assignRes, testsRes] = await settleApiCalls([
+        LmsApi.assignments(),
+        LmsApi.classTests(),
+      ]);
+      setAssignments((assignRes as any)?.assignments ?? []);
+      setTests((testsRes as any)?.tests ?? []);
+    } catch {
+      setAssignments([]);
+      setTests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const activeAssignments = assignments.filter(a => isActiveAssignment(a) && isMeaningfulAssignment(a));
+  const recentAssignments = activeAssignments.slice(0, 3);
+  const recentTests = tests.slice(0, 3);
 
   return (
-    <ScreenLayout title="Work" subtitle="Assignments & class tests">
-      <MenuTile title="View assignments" subtitle="List, toggle, delete" onPress={() => navigation.navigate('AssignmentsList')} />
-      <MenuTile title="Add assignment" subtitle="Link or file" onPress={() => navigation.navigate('AddAssignment')} />
-      <MenuTile title="Class tests" subtitle="All tests" onPress={() => navigation.navigate('ClassTests')} />
-      <MenuTile title="Create class test" onPress={() => navigation.navigate('CreateClassTest')} />
-      <MenuTile title="Enter test marks" onPress={() => navigation.navigate('EnterMarks')} />
-      <MenuTile title="Class test results" onPress={() => navigation.navigate('TestResults')} />
+    <ScreenLayout title="Work" refreshing={loading} onRefresh={load}>
+      <Card>
+        <Text style={styles.summaryTitle}>Assignments & class tests</Text>
+        <Text style={styles.summaryHint}>Manage homework, uploads, and test marks</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{activeAssignments.length}</Text>
+            <Text style={styles.statLabel}>Active assignments</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{assignments.length}</Text>
+            <Text style={styles.statLabel}>Total assignments</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{tests.length}</Text>
+            <Text style={styles.statLabel}>Class tests</Text>
+          </View>
+        </View>
+      </Card>
+
+      <Text style={styles.section}>Assignments</Text>
+      <ActionCard
+        iconName="file-document-multiple-outline"
+        title="View assignments"
+        subtitle="Browse, activate, or delete shared work"
+        onPress={() => navigation.navigate('AssignmentsList')}
+      />
+      <ActionCard
+        iconName="file-upload-outline"
+        title="Add assignment"
+        subtitle="Share a link or upload a file for a batch"
+        onPress={() => navigation.navigate('AddAssignment')}
+      />
+
+      <Text style={styles.section}>Class tests</Text>
+      <ActionCard
+        iconName="clipboard-plus-outline"
+        title="Create class test"
+        subtitle="Set up test name, date, and marks"
+        onPress={() => navigation.navigate('CreateClassTest')}
+      />
+      <ActionCard
+        iconName="pencil-box-outline"
+        title="Enter test marks"
+        subtitle="Record student scores after a test is created"
+        onPress={() => navigation.navigate('EnterMarks')}
+      />
+      <ActionCard
+        iconName="clipboard-text-outline"
+        title="View all tests"
+        subtitle="See every class test you have created"
+        onPress={() => navigation.navigate('ClassTests')}
+      />
+      <ActionCard
+        iconName="chart-box-outline"
+        title="Class test results"
+        subtitle="Review submitted marks and outcomes"
+        onPress={() => navigation.navigate('TestResults')}
+      />
+
+      {(recentTests.length > 0 || recentAssignments.length > 0) && (
+        <Text style={styles.section}>Recent</Text>
+      )}
+
+      {recentTests.length > 0 ? (
+        <Card title="Latest class tests">
+          {recentTests.map((test: any, index: number) => (
+            <Pressable
+              key={test.id}
+              style={[styles.recentRow, index > 0 && styles.recentRowBorder]}
+              onPress={() => navigation.navigate('ClassTests')}>
+              <Text style={styles.recentTitle}>{test.test_name}</Text>
+              <Text style={styles.recentSub}>
+                {test.course_name} · {test.test_date}
+              </Text>
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+
+      {recentAssignments.length > 0 ? (
+        <Card title="Active assignments">
+          {recentAssignments.map((assignment: any, index: number) => (
+            <Pressable
+              key={assignment.id}
+              style={[styles.recentRow, index > 0 && styles.recentRowBorder]}
+              onPress={() => navigation.navigate('AssignmentsList')}>
+              <Text style={styles.recentTitle}>{assignmentLabel(assignment)}</Text>
+              <Text style={styles.recentSub}>{assignment.batch_name || 'No batch'}</Text>
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
     </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.text,
+  },
+  summaryHint: {
+    fontSize: 13,
+    color: theme.muted,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  section: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.muted,
+    marginBottom: 10,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: theme.text,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: theme.muted,
+    marginTop: 4,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  recentRow: {
+    paddingVertical: 8,
+  },
+  recentRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e2e8f0',
+    marginTop: 4,
+    paddingTop: 10,
+  },
+  recentTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.text,
+  },
+  recentSub: {
+    fontSize: 12,
+    color: theme.muted,
+    marginTop: 2,
+  },
+});

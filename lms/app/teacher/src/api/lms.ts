@@ -6,10 +6,18 @@ const p = `/${APP_ROLE}`;
 export const LmsApi = {
   dashboard: () => http.get(`${p}/dashboard`).then(r => r.data),
   profile: () => http.get(`${p}/profile`).then(r => r.data),
-  students: () => http.get(`${p}/students`).then(r => r.data),
+  students: (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    course?: string;
+    batch?: string;
+  }) => http.get(`${p}/students`, { params }).then(r => r.data),
   courses: () => http.get(`${p}/courses`).then(r => r.data),
   attendance: (month?: string) =>
-    http.get(`${p}/attendance`, { params: month ? { month } : {} }).then(r => r.data),
+    http
+      .get(`${p}/attendance`, { params: { month: month ?? new Date().toISOString().slice(0, 7) } })
+      .then(r => r.data),
   assignments: () => http.get(`${p}/assignments`).then(r => r.data),
   assignment: (id: number) => http.get(`${p}/assignments/${id}`).then(r => r.data),
   student: (id: string) => http.get(`${p}/students/${id}`).then(r => r.data),

@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { DataList } from '../components/DataList';
+import ListRow from '../components/ListRow';
 import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
 
@@ -17,6 +18,8 @@ export default function ClassTestsScreen() {
     try {
       const res: any = await LmsApi.classTests();
       setItems(res.tests ?? []);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -29,28 +32,51 @@ export default function ClassTestsScreen() {
   return (
     <ScreenLayout
       title="Class Tests"
-      subtitle="Create & marks (view)"
+      subtitle="Create & enter marks"
       onBack={() => navigation.navigate('WorkHub')}
       refreshing={loading}
       onRefresh={load}>
       <Card>
-        <Text style={styles.hint}>Use Create Class Test or Enter Test Marks from Home / Work tab.</Text>
+        <Text style={styles.hint}>
+          Tap a test to enter marks. Use “Create class test” from the Work tab to add a new one.
+        </Text>
+      </Card>
+
+      <Card title={`All tests (${items.length})`}>
         <DataList
           loading={loading}
           items={items}
-          emptyText="No class tests"
-          renderItem={(t: any) => (
-            <Text style={styles.line}>
-              {t.test_name} — {t.course_name} — {t.test_date}
-            </Text>
-          )}
+          emptyText="No class tests yet"
+          renderItem={(t: any) => {
+            const title = String(t.test_name ?? 'Untitled test');
+            const course = String(t.course_name ?? '').trim();
+            const subject = String(t.subject_name ?? '').trim();
+            const date = String(t.test_date ?? '').trim();
+            const subtitle = [course, subject, date].filter(Boolean).join(' · ');
+
+            return (
+              <ListRow
+                title={title}
+                subtitle={subtitle}
+                onPress={() =>
+                  navigation.navigate('EnterMarks', {
+                    courseId: t.course_id != null ? String(t.course_id) : undefined,
+                    subjectId: t.subject_id != null ? String(t.subject_id) : undefined,
+                    testId: t.id != null ? String(t.id) : undefined,
+                  })
+                }
+                right="Enter"
+              />
+            );
+          }}
         />
+        {!loading && items.length > 0 ? <View style={styles.footerSpace} /> : null}
       </Card>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  hint: { color: theme.muted, marginBottom: 12, fontSize: 13 },
-  line: { fontSize: 14, color: theme.text, marginBottom: 8 },
+  hint: { color: theme.muted, fontSize: 13, lineHeight: 18 },
+  footerSpace: { height: 4 },
 });

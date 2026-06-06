@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import { Text, Pressable, StyleSheet, Alert, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
+import { FormInput } from '../components/FormInput';
+import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
+import { theme } from '../ui/theme';
 
 export default function ChangePasswordScreen() {
+  const navigation = useNavigation<any>();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,6 +26,7 @@ export default function ChangePasswordScreen() {
       Alert.alert('Success', 'Password updated');
       setCurrent('');
       setNext('');
+      navigation.goBack();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Failed');
     } finally {
@@ -29,12 +35,35 @@ export default function ChangePasswordScreen() {
   }
 
   return (
-    <ScreenLayout title="Change Password" subtitle="Account security">
+    <ScreenLayout
+      title="Change Password"
+      subtitle="Account security"
+      onBack={() => navigation.goBack()}>
       <Card>
-        <Text style={styles.label}>Current password</Text>
-        <TextInput style={styles.input} secureTextEntry value={current} onChangeText={setCurrent} />
-        <Text style={styles.label}>New password</Text>
-        <TextInput style={styles.input} secureTextEntry value={next} onChangeText={setNext} />
+        <View style={styles.hintRow}>
+          <View style={styles.hintIcon}>
+            <AppIcon name="shield-checkmark-outline" size={22} color={PRIMARY} />
+          </View>
+          <Text style={styles.hintText}>
+            Choose a strong password you have not used elsewhere.
+          </Text>
+        </View>
+
+        <FormInput
+          label="Current password"
+          value={current}
+          onChangeText={setCurrent}
+          placeholder="Enter current password"
+          secureTextEntry
+        />
+        <FormInput
+          label="New password"
+          value={next}
+          onChangeText={setNext}
+          placeholder="Enter new password"
+          secureTextEntry
+        />
+
         <Pressable style={[styles.btn, loading && styles.disabled]} onPress={save} disabled={loading}>
           <Text style={styles.btnText}>{loading ? 'Saving…' : 'Update password'}</Text>
         </Pressable>
@@ -44,9 +73,41 @@ export default function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontWeight: '600', marginBottom: 6, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12, marginBottom: 8 },
-  btn: { backgroundColor: PRIMARY, padding: 14, borderRadius: 10, alignItems: 'center', marginTop: 12 },
-  btnText: { color: '#fff', fontWeight: '700' },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: theme.primarySoft,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+  },
+  hintIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hintText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.muted,
+    lineHeight: 18,
+  },
+  btn: {
+    backgroundColor: PRIMARY,
+    padding: 15,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   disabled: { opacity: 0.6 },
 });

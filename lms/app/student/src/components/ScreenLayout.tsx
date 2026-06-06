@@ -9,8 +9,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PRIMARY, APP_TITLE } from '../config';
+import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+import AppIcon from './AppIcon';
 
 type Props = {
   title: string;
@@ -34,23 +35,30 @@ export default function ScreenLayout({
   rightAction,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const showSubtitle = !!onBack && !!subtitle;
+
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+    <View style={[styles.header, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.card} />
       <View style={styles.headerRow}>
         {onBack ? (
-          <Pressable onPress={onBack} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
+          <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
+            <AppIcon name="chevron-back" size={24} color={PRIMARY} />
           </Pressable>
         ) : (
-          <View style={styles.backPlaceholder} />
+          <View style={styles.sideSlot} />
         )}
-        <View style={styles.headerCenter}>
-          <Text style={styles.brand}>{APP_TITLE}</Text>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <View style={styles.headerText}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {showSubtitle ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
-        <View style={styles.right}>{rightAction ?? <View style={styles.backPlaceholder} />}</View>
+        <View style={styles.sideSlot}>{rightAction}</View>
       </View>
     </View>
   );
@@ -83,16 +91,50 @@ export default function ScreenLayout({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  header: { backgroundColor: PRIMARY, paddingBottom: 16, paddingHorizontal: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  backText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  backPlaceholder: { width: 40 },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  brand: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },
-  title: { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 2 },
-  subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
-  right: { width: 40, alignItems: 'flex-end' },
+  header: {
+    backgroundColor: theme.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  sideSlot: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  title: {
+    color: theme.text,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    color: theme.muted,
+    fontSize: 12,
+    marginTop: 1,
+  },
   body: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 100 },
 });

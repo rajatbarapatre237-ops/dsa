@@ -1,9 +1,12 @@
 import React, { useCallback, useState } from 'react';
+import { Text, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
-import DetailRow from '../components/DetailRow';
+import { AttendanceOverviewCard } from '../components/DashboardUi';
 import { LmsApi } from '../api/lms';
+import { formatStudentDisplayId } from '../utils/studentId';
+import { theme } from '../ui/theme';
 
 export default function TodayAttendanceScreen() {
   const navigation = useNavigation<any>();
@@ -34,14 +37,40 @@ export default function TodayAttendanceScreen() {
       onBack={() => navigation.navigate('AttendanceHub')}
       refreshing={loading}
       onRefresh={load}>
-      <Card>
-        <DetailRow label="Date" value={att?.date} />
-        <DetailRow label="Status" value={att?.status} />
-        <DetailRow label="Entry time" value={att?.entry_time} />
-        <DetailRow label="Exit time" value={att?.exit_time} />
-        <DetailRow label="Course" value={child?.course_name} />
-        <DetailRow label="Batch" value={child?.batch} />
+      <AttendanceOverviewCard
+        date={att?.date}
+        status={att?.status}
+        entry={att?.entry_time}
+        exit={att?.exit_time}
+      />
+
+      <Card title="Student details">
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Course</Text>
+          <Text style={styles.value}>{child?.course_name ?? '—'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Batch</Text>
+          <Text style={styles.value}>{child?.batch ?? '—'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Student ID</Text>
+          <Text style={styles.value}>{formatStudentDisplayId(child?.id) ?? '—'}</Text>
+        </View>
       </Card>
     </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+  },
+  label: { fontSize: 13, fontWeight: '600', color: theme.muted },
+  value: { fontSize: 14, fontWeight: '700', color: theme.text },
+});

@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
-import { Card, MenuTile } from '../components/Card';
+import { ActionCard } from '../components/Card';
+import { AttendanceOverviewCard, HeroCard, SectionTitle } from '../components/DashboardUi';
+import { formatStudentDisplayId } from '../utils/studentId';
 import { LmsApi } from '../api/lms';
 import { APP_SUBTITLE } from '../config';
 import { theme } from '../ui/theme';
@@ -26,28 +27,57 @@ export default function HomeScreen() {
     load();
   }, [load]);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
   const child = data?.child;
   const att = data?.today_attendance;
 
   return (
-    <ScreenLayout title="Dashboard" subtitle={APP_SUBTITLE} refreshing={loading} onRefresh={load}>
-      <Card title={`Parent of ${child?.name ?? 'Student'}`}>
-        <Text style={styles.line}>Student ID: {child?.id ?? '—'}</Text>
-        <Text style={styles.line}>Course: {child?.course_name ?? '—'}</Text>
-      </Card>
-      <Card title="Today's attendance">
-        <Text style={styles.line}>Date: {att?.date}</Text>
-        <Text style={styles.line}>Status: {att?.status || '—'}</Text>
-        <Text style={styles.line}>Entry: {att?.entry_time}</Text>
-        <Text style={styles.line}>Exit: {att?.exit_time}</Text>
-      </Card>
-      <MenuTile title="Attendance" onPress={() => navigation.navigate('Attendance')} />
-      <MenuTile title="Marks & results" onPress={() => navigation.navigate('Marks')} />
-      <MenuTile title="Account" onPress={() => navigation.navigate('Account')} />
+    <ScreenLayout title="Dashboard" refreshing={loading} onRefresh={load}>
+      <HeroCard
+        eyebrow={APP_SUBTITLE}
+        title={child?.name ?? 'Your child'}
+        subtitle="Stay updated on attendance and academic progress"
+        avatarLabel={child?.name}
+        chips={[
+          { label: formatStudentDisplayId(child?.id) ?? 'ID —', icon: 'card-outline' },
+          { label: child?.course_name ?? 'Course —', icon: 'school-outline' },
+        ]}
+      />
+
+      <AttendanceOverviewCard
+        date={att?.date}
+        status={att?.status}
+        entry={att?.entry_time}
+        exit={att?.exit_time}
+      />
+
+      <SectionTitle>Quick access</SectionTitle>
+      <ActionCard
+        iconName="calendar-check"
+        title="Attendance"
+        subtitle="Today's status and monthly history"
+        accent="#e0f2fe"
+        onPress={() => navigation.navigate('Attendance')}
+      />
+      <ActionCard
+        iconName="chart-box-outline"
+        title="Marks & results"
+        subtitle="Class tests and scored results"
+        accent="#ede9fe"
+        onPress={() => navigation.navigate('Marks')}
+      />
+      <ActionCard
+        iconName="account-circle-outline"
+        title="Account"
+        subtitle="Profile and security settings"
+        accent={theme.primarySoft}
+        onPress={() => navigation.navigate('Account')}
+      />
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  line: { fontSize: 14, color: theme.text, marginTop: 4 },
-});

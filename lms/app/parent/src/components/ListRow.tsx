@@ -2,15 +2,18 @@ import React from 'react';
 import { Pressable, Text, StyleSheet, View } from 'react-native';
 import { theme } from '../ui/theme';
 import { PRIMARY } from '../config';
+import AppIcon from './AppIcon';
 
 export default function ListRow({
   title,
   subtitle,
   onPress,
+  right,
 }: {
   title: string;
   subtitle?: string;
   onPress?: () => void;
+  right?: string;
 }) {
   const content = (
     <View style={styles.row}>
@@ -18,12 +21,18 @@ export default function ListRow({
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
       </View>
-      {onPress ? <Text style={styles.chevron}>›</Text> : null}
+      {right ? (
+        <Text style={styles.right}>{right}</Text>
+      ) : onPress ? (
+        <AppIcon name="chevron-forward" size={20} color={theme.muted} />
+      ) : null}
     </View>
   );
+
   if (!onPress) {
     return <View style={styles.wrap}>{content}</View>;
   }
+
   return (
     <Pressable style={styles.wrap} onPress={onPress}>
       {content}
@@ -32,10 +41,14 @@ export default function ListRow({
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 12 },
+  wrap: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingVertical: 12,
+  },
   row: { flexDirection: 'row', alignItems: 'center' },
   body: { flex: 1 },
   title: { fontSize: 15, fontWeight: '600', color: theme.text },
   sub: { fontSize: 12, color: theme.muted, marginTop: 3 },
-  chevron: { fontSize: 22, color: theme.muted, paddingLeft: 8 },
+  right: { fontSize: 13, color: PRIMARY, fontWeight: '600' },
 });

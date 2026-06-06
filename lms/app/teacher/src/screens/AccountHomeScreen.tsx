@@ -2,10 +2,9 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
-import { MenuTile } from '../components/Card';
-import { AppStorage } from '../storage/AppStorage';
+import { ActionCard, Card } from '../components/Card';
 import { AuthApi } from '../api/auth';
-import { resetToLogin } from '../navigation/RootNavigation';
+import { logoutSession } from '../auth/authSession';
 
 export default function AccountHomeScreen() {
   const navigation = useNavigation<any>();
@@ -22,18 +21,32 @@ export default function AccountHomeScreen() {
           } catch {
             /* ignore */
           }
-          await AppStorage.clear();
-          resetToLogin();
+          await logoutSession();
         },
       },
     ]);
   }
 
   return (
-    <ScreenLayout title="Account" subtitle="Settings">
-      <MenuTile title="View salary" onPress={() => navigation.navigate('Salary')} />
-      <MenuTile title="Change password" onPress={() => navigation.navigate('ChangePassword')} />
-      <MenuTile title="Logout" onPress={logout} />
+    <ScreenLayout title="Account">
+      <ActionCard
+        iconName="wallet-outline"
+        title="View salary"
+        subtitle="Monthly salary records"
+        onPress={() => navigation.navigate('Salary')}
+      />
+      <ActionCard
+        iconName="lock-reset"
+        title="Change password"
+        subtitle="Update account security"
+        onPress={() => navigation.navigate('ChangePassword')}
+      />
+      <ActionCard
+        iconName="logout"
+        title="Logout"
+        subtitle="Sign out of your account"
+        onPress={logout}
+      />
     </ScreenLayout>
   );
 }

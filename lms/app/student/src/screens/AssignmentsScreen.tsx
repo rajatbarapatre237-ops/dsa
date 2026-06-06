@@ -1,11 +1,15 @@
 import React, { useCallback, useState } from 'react';
+import { Text, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
-import { Card } from '../components/Card';
-import { DataList } from '../components/DataList';
-import ListRow from '../components/ListRow';
+import { SectionTitle } from '../components/DashboardUi';
+import {
+  AssignmentListItem,
+  AssignmentsSummaryCard,
+} from '../components/AssignmentUi';
 import { LmsApi } from '../api/lms';
+import { theme } from '../ui/theme';
 import { AssignmentsStackParamList } from '../navigation/types';
 
 export default function AssignmentsScreen() {
@@ -29,25 +33,56 @@ export default function AssignmentsScreen() {
 
   return (
     <ScreenLayout
-      title="Questions"
-      subtitle="Tap for details"
+      title="Assignments"
+      subtitle="Active for your batch"
       onBack={() => navigation.navigate('AssignmentsHub')}
       refreshing={loading}
       onRefresh={load}>
-      <Card>
-        <DataList
-          loading={loading}
-          items={items}
-          emptyText="No assignments for your batch"
-          renderItem={(a: any) => (
-            <ListRow
-              title={a.document_name}
-              subtitle={`${a.type} · ${a.batch_name}`}
-              onPress={() => navigation.navigate('AssignmentDetail', { id: a.id })}
-            />
-          )}
-        />
-      </Card>
+      <AssignmentsSummaryCard count={items.length} />
+
+      <SectionTitle>All assignments</SectionTitle>
+      <View style={styles.listCard}>
+        {items.length > 0 ? (
+          items.map((item, index) => (
+            <View key={item.id ?? index}>
+              <AssignmentListItem
+                item={item}
+                onPress={() => navigation.navigate('AssignmentDetail', { id: item.id })}
+              />
+              {index < items.length - 1 ? <View style={styles.divider} /> : null}
+            </View>
+          ))
+        ) : (
+          <Text style={styles.empty}>No assignments for your batch</Text>
+        )}
+      </View>
     </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  listCard: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: theme.border,
+  },
+  empty: {
+    fontSize: 14,
+    color: theme.muted,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+});

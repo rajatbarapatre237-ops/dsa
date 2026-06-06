@@ -5,10 +5,20 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { DataList } from '../components/DataList';
-import ListRow from '../components/ListRow';
+import {
+  AssignmentListItem,
+  AssignmentsSummaryCard,
+} from '../components/AssignmentUi';
+import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
+import { theme } from '../ui/theme';
+import { platformWeight } from '../ui/typography';
 import { WorkStackParamList } from '../navigation/types';
+
+function isActiveStatus(status: unknown) {
+  return status === 1 || status === '1' || status === true;
+}
 
 export default function AssignmentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
@@ -20,6 +30,8 @@ export default function AssignmentsScreen() {
     try {
       const res: any = await LmsApi.assignments();
       setItems(res.assignments ?? []);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -58,41 +70,47 @@ export default function AssignmentsScreen() {
     ]);
   }
 
+  const activeCount = items.filter(a => isActiveStatus(a.status)).length;
+
   return (
     <ScreenLayout
       title="Assignments"
-      subtitle="Tap a row for details"
+      subtitle="Share files and links with batches"
       onBack={() => navigation.navigate('WorkHub')}
       refreshing={loading}
       onRefresh={load}
       rightAction={
-        <Pressable onPress={() => navigation.navigate('AddAssignment')}>
-          <Text style={styles.addBtn}>+</Text>
+        <Pressable style={styles.addBtn} onPress={() => navigation.navigate('AddAssignment')}>
+          <AppIcon name="add" size={22} color="#fff" />
         </Pressable>
       }>
-      <Card>
+      <AssignmentsSummaryCard count={activeCount} />
+
+      <Card title={`All assignments (${items.length})`}>
         <DataList
           loading={loading}
           items={items}
           emptyText="No assignments yet"
           renderItem={(a: any) => (
-            <View style={styles.item}>
-              <ListRow
-                title={a.document_name}
-                subtitle={`${a.batch_name} · ${a.type}`}
+            <View style={[styles.item, items.indexOf(a) === items.length - 1 && styles.itemLast]}>
+              <AssignmentListItem
+                item={a}
                 onPress={() => navigation.navigate('AssignmentDetail', { id: a.id })}
               />
-              <View style={styles.row}>
-                <Text style={styles.label}>Active</Text>
-                <Switch
-                  value={!!a.status}
-                  onValueChange={v => toggleStatus(a, v)}
-                  trackColor={{ true: PRIMARY }}
-                />
+              <View style={styles.itemFooter}>
+                <View style={styles.toggleRow}>
+                  <Text style={[styles.toggleLabel, platformWeight('600')]}>Visible to students</Text>
+                  <Switch
+                    value={isActiveStatus(a.status)}
+                    onValueChange={v => toggleStatus(a, v)}
+                    trackColor={{ true: PRIMARY, false: '#cbd5e1' }}
+                  />
+                </View>
+                <Pressable style={styles.deleteBtn} onPress={() => confirmDelete(a)}>
+                  <AppIcon name="trash-outline" size={16} color={theme.danger} />
+                  <Text style={[styles.deleteText, platformWeight('700')]}>Delete</Text>
+                </Pressable>
               </View>
-              <Pressable onPress={() => confirmDelete(a)}>
-                <Text style={styles.delete}>Delete</Text>
-              </Pressable>
             </View>
           )}
         />
@@ -102,9 +120,40 @@ export default function AssignmentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  addBtn: { color: '#fff', fontSize: 28, fontWeight: '300', lineHeight: 32 },
-  item: { marginBottom: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  label: { fontSize: 13, color: '#64748b' },
-  delete: { color: '#dc2626', fontWeight: '600', marginBottom: 8 },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  item: {
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+    paddingBottom: 8,
+  },
+  itemLast: { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 },
+  itemFooter: {
+    paddingLeft: 50,
+    paddingRight: 4,
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleLabel: { fontSize: 13, color: theme.muted },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  deleteText: { color: theme.danger, fontSize: 13 },
 });

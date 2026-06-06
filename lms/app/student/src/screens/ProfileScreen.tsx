@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, StyleSheet, Alert, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { FormInput } from '../components/FormInput';
 import { LmsApi } from '../api/lms';
+import { useStudentContext } from '../hooks/useStudentContext';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
+  const ctx = useStudentContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -45,6 +47,12 @@ export default function ProfileScreen() {
     load();
   }, [load]);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
   async function save() {
     if (!name.trim()) {
       Alert.alert('Required', 'Name is required');
@@ -52,7 +60,7 @@ export default function ProfileScreen() {
     }
     setSaving(true);
     try {
-      await LmsApi.updateProfile({
+      const res: any = await LmsApi.updateProfile({
         name: name.trim(),
         age,
         mobile,
@@ -62,8 +70,10 @@ export default function ProfileScreen() {
         state,
         aadhar,
       });
+      const updated = res.profile ?? {};
+      setMeta(updated);
+      await ctx.applyProfile(updated);
       Alert.alert('Saved', 'Profile updated');
-      load();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save profile');
     } finally {
@@ -81,8 +91,9 @@ export default function ProfileScreen() {
       refreshing={loading}
       onRefresh={load}>
       <Card>
-        <Text style={styles.readonly}>Course: {m.course_name ?? '—'}</Text>
-        <Text style={styles.readonly}>Batch: {m.batch ?? '—'}</Text>
+        <Text style={styles.readonly}>Student ID: {ctx.studentId ?? m.id ?? '—'}</Text>
+        <Text style={styles.readonly}>Course: {m.course_name ?? ctx.course ?? '—'}</Text>
+        <Text style={styles.readonly}>Batch: {m.batch ?? ctx.batch ?? '—'}</Text>
         <Text style={styles.readonly}>Fees balance: {m.balance_fees ?? '—'}</Text>
         <FormInput label="Name" value={name} onChangeText={setName} />
         <FormInput label="Age" value={age} onChangeText={setAge} keyboardType="numeric" />

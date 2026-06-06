@@ -2,12 +2,19 @@ import React, { useCallback, useState } from 'react';
 import { Alert, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
-import { Card } from '../components/Card';
-import DetailRow from '../components/DetailRow';
-import ListRow from '../components/ListRow';
+import {
+  AttendanceRecordCard,
+  EmptyAttendanceState,
+  ProfileDetailsCard,
+  ProfileInfoRow,
+  StudentProfileHero,
+  StudentProfileSectionTitle,
+  StudentQuickStats,
+} from '../components/StudentProfileUi';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { StudentsStackParamList } from '../navigation/types';
+import { formatStudentBatch, formatStudentDisplayId } from '../utils/student';
 
 type Props = NativeStackScreenProps<StudentsStackParamList, 'StudentDetail'>;
 
@@ -32,39 +39,68 @@ export default function StudentDetailScreen({ navigation, route }: Props) {
   }, [load]);
 
   const s = data?.student;
+  const batch = formatStudentBatch(s?.batch);
+  const recentAttendance = data?.recent_attendance ?? [];
+  const chips = [
+    s?.course_name ? { label: s.course_name, icon: 'school-outline' } : null,
+    batch ? { label: batch, icon: 'people-outline' } : null,
+    s?.school_name && s.school_name !== 'No name'
+      ? { label: s.school_name, icon: 'business-outline' }
+      : null,
+  ].filter(Boolean) as { label: string; icon: string }[];
 
   return (
     <ScreenLayout
       title="Student profile"
-      subtitle={s?.name ?? `ID ${id}`}
       onBack={() => navigation.goBack()}
       refreshing={loading}
       onRefresh={load}>
       {loading && !s ? <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} /> : null}
       {s ? (
         <>
-          <Card>
-            <DetailRow label="Student ID" value={s.id} />
-            <DetailRow label="Name" value={s.name} />
-            <DetailRow label="Mobile" value={s.mobile} />
-            <DetailRow label="Email" value={s.email} />
-            <DetailRow label="Course" value={s.course_name} />
-            <DetailRow label="Batch" value={s.batch} />
-            <DetailRow label="School" value={s.school_name} />
-            <DetailRow label="Fees balance" value={s.balance_fees} />
-          </Card>
-          <Card title="Recent attendance">
-            {(data?.recent_attendance ?? []).map((r: any) => (
-              <ListRow
-                key={`${r.date}-${r.sid}`}
-                title={r.date}
-                subtitle={`${r.status} · ${r.course}/${r.batch}`}
-              />
-            ))}
-            {!(data?.recent_attendance ?? []).length ? (
-              <DetailRow label="Records" value="No recent attendance" />
-            ) : null}
-          </Card>
+          <StudentProfileHero
+            name={s.name}
+            studentId={formatStudentDisplayId(s.id)}
+            avatarLabel={s.name}
+            chips={chips}
+          />
+
+          <StudentQuickStats
+            studentId={formatStudentDisplayId(s.id)}
+            feesBalance={s.balance_fees}
+            schoolName={s.school_name}
+          />
+
+          <StudentProfileSectionTitle>Contact</StudentProfileSectionTitle>
+          <ProfileDetailsCard title="Reach student">
+            <ProfileInfoRow icon="call-outline" label="Mobile" value={s.mobile} />
+            <ProfileInfoRow icon="mail-outline" label="Email" value={s.email} last />
+          </ProfileDetailsCard>
+
+          <StudentProfileSectionTitle>Academics</StudentProfileSectionTitle>
+          <ProfileDetailsCard title="Enrollment">
+            <ProfileInfoRow icon="school-outline" label="Course" value={s.course_name} />
+            <ProfileInfoRow icon="people-outline" label="Batch" value={batch ?? 'Not set'} />
+            <ProfileInfoRow icon="business-outline" label="School" value={s.school_name} last />
+          </ProfileDetailsCard>
+
+          <StudentProfileSectionTitle>Recent attendance</StudentProfileSectionTitle>
+          <ProfileDetailsCard title="Last records">
+            {recentAttendance.length > 0 ? (
+              recentAttendance.map((r: any, index: number) => (
+                <AttendanceRecordCard
+                  key={`${r.date}-${r.sid}`}
+                  date={r.date}
+                  status={r.status}
+                  course={r.course}
+                  batch={r.batch}
+                  last={index === recentAttendance.length - 1}
+                />
+              ))
+            ) : (
+              <EmptyAttendanceState />
+            )}
+          </ProfileDetailsCard>
         </>
       ) : null}
     </ScreenLayout>

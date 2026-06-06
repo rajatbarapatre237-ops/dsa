@@ -10,7 +10,6 @@ export const LmsApi = {
   courses: () => http.get(`${p}/courses`).then(r => r.data),
   attendance: (month?: string) =>
     http.get(`${p}/attendance`, { params: month ? { month } : {} }).then(r => r.data),
-  assignments: () => http.get(`${p}/assignments`).then(r => r.data),
   transactions: () => http.get(`${p}/transactions`).then(r => r.data),
   salary: () => http.get(`${p}/salary`).then(r => r.data),
   classTests: () => http.get(`${p}/class-tests`).then(r => r.data),

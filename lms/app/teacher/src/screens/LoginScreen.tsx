@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthApi } from '../api/auth';
-import { AppStorage } from '../storage/AppStorage';
+import { loginSession } from '../auth/authSession';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   APP_SUBTITLE,
   APP_TITLE,
@@ -23,7 +24,7 @@ import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen(_props: Props) {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,11 +45,9 @@ export default function LoginScreen({ navigation }: Props) {
       if (res.status !== 'success' || !res.token) {
         throw new Error('Login failed');
       }
-      await AppStorage.setToken(res.token);
-      await AppStorage.setUser(res.user);
-      navigation.replace('Main');
-    } catch (e: any) {
-      setError(e?.message || 'Login failed');
+      await loginSession(res.token, res.user);
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Login failed'));
     } finally {
       setLoading(false);
     }

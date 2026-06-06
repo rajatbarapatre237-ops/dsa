@@ -1,29 +1,57 @@
 import React from 'react';
+import { Text, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
-import DetailRow from '../components/DetailRow';
+import { LatestMarksCard, isTestPassed } from '../components/MarksUi';
 import { AssignmentsStackParamList } from '../navigation/types';
+import { theme } from '../ui/theme';
 
 type Props = NativeStackScreenProps<AssignmentsStackParamList, 'ClassTestResultDetail'>;
 
 export default function ClassTestResultDetailScreen({ navigation, route }: Props) {
   const { result } = route.params;
-  const passed =
-    result.marks_obtained != null &&
-    result.passing_marks != null &&
-    Number(result.marks_obtained) >= Number(result.passing_marks);
+  const passed = isTestPassed(result as any);
 
   return (
     <ScreenLayout title="Test result" subtitle={String(result.test_name)} onBack={() => navigation.goBack()}>
-      <Card>
-        <DetailRow label="Test" value={String(result.test_name)} />
-        <DetailRow label="Date" value={String(result.test_date)} />
-        <DetailRow label="Subject" value={String(result.subject_name ?? '')} />
-        <DetailRow label="Marks" value={`${result.marks_obtained} / ${result.total_marks}`} />
-        <DetailRow label="Passing marks" value={String(result.passing_marks)} />
-        <DetailRow label="Result" value={passed ? 'Pass' : 'Fail'} />
+      <LatestMarksCard result={result as any} />
+
+      <Card title="Details">
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Subject</Text>
+          <Text style={styles.value}>{String(result.subject_name ?? '—')}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Test date</Text>
+          <Text style={styles.value}>{String(result.test_date ?? '—')}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Passing marks</Text>
+          <Text style={styles.value}>{String(result.passing_marks ?? '—')}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Final result</Text>
+          <Text style={[styles.value, passed === true && styles.pass, passed === false && styles.fail]}>
+            {passed === true ? 'Pass' : passed === false ? 'Fail' : '—'}
+          </Text>
+        </View>
       </Card>
     </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+  },
+  label: { fontSize: 13, fontWeight: '600', color: theme.muted },
+  value: { fontSize: 14, fontWeight: '700', color: theme.text },
+  pass: { color: theme.success },
+  fail: { color: theme.danger },
+});

@@ -1,23 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { navigationRef } from './RootNavigation';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { isLoggedIn, subscribeAuth } from '../auth/authSession';
 import LoginScreen from '../screens/LoginScreen';
 import MainTabs from './MainTabs';
-import { AppStorage } from '../storage/AppStorage';
+import { StudentContextProvider } from '../hooks/useStudentContext';
+import { navigationRef } from './RootNavigation';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const [ready, setReady] = useState(false);
-  const [hasToken, setHasToken] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     (async () => {
-      setHasToken(!!(await AppStorage.getToken()));
-      setReady(true);
+      const hasSession = await isLoggedIn();
+      if (mounted) {
+        setLoggedIn(hasSession);
+        setReady(true);
+      }
     })();
+
+    const unsubscribe = subscribeAuth(setLoggedIn);
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   if (!ready) {
@@ -26,11 +39,18 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={hasToken ? 'Main' : 'Login'}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {loggedIn ? (
+          <Stack.Screen name="Main">
+            {() => (
+              <StudentContextProvider>
+                <MainTabs />
+              </StudentContextProvider>
+            )}
+          </Stack.Screen>
+        ) : (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

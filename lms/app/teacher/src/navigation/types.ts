@@ -11,7 +11,13 @@ export type WorkStackParamList = {
   AssignmentFile: { id: number };
   ClassTests: undefined;
   CreateClassTest: undefined;
-  EnterMarks: undefined;
+  EnterMarks:
+    | {
+        courseId?: string;
+        subjectId?: string;
+        testId?: string;
+      }
+    | undefined;
   TestResults: undefined;
   ClassTestResultDetail: { result: Record<string, unknown> };
 };

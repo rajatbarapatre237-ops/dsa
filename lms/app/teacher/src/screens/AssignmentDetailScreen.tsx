@@ -1,14 +1,41 @@
 import React, { useCallback, useState } from 'react';
-import { Text, StyleSheet, Pressable, Alert, Share, ActivityIndicator } from 'react-native';
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  Alert,
+  Share,
+  ActivityIndicator,
+  Linking,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
-import DetailRow from '../components/DetailRow';
+import {
+  AssignmentHeroCard,
+  AssignmentInfoRow,
+  AssignmentStatusToggle,
+} from '../components/AssignmentUi';
+import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
+import { theme } from '../ui/theme';
+import { platformWeight } from '../ui/typography';
 import { WorkStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<WorkStackParamList, 'AssignmentDetail'>;
+
+function normalizeUrl(value?: string | null) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  if (/^https?:\/\//i.test(text)) return text;
+  return `https://${text}`;
+}
+
+function isActiveStatus(status: unknown) {
+  return status === 1 || status === '1' || status === true;
+}
 
 export default function AssignmentDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
@@ -31,11 +58,47 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
     load();
   }, [load]);
 
-  async function shareLink() {
-    if (!item?.link_url) {
+  const isLink = String(item?.type ?? '').toLowerCase() === 'link';
+  const linkUrl = normalizeUrl(item?.link_url ?? item?.document);
+  const active = isActiveStatus(item?.status);
+
+  async function openLink() {
+    if (!linkUrl) {
+      Alert.alert('No link', 'This assignment does not have a valid link.');
       return;
     }
-    await Share.share({ message: item.link_url, title: item.document_name });
+    try {
+      await Linking.openURL(linkUrl);
+    } catch {
+      Alert.alert('Could not open link', linkUrl);
+    }
+  }
+
+  async function toggleStatus(on: boolean) {
+    try {
+      await LmsApi.updateAssignmentStatus(id, on);
+      setItem((prev: any) => (prev ? { ...prev, status: on ? 1 : 0 } : prev));
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not update status');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert('Delete assignment', `Remove "${item?.document_name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await LmsApi.deleteAssignment(id);
+            navigation.goBack();
+          } catch (e: any) {
+            Alert.alert('Error', e?.message ?? 'Could not delete');
+          }
+        },
+      },
+    ]);
   }
 
   return (
@@ -45,45 +108,113 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
       onBack={() => navigation.goBack()}
       refreshing={loading}
       onRefresh={load}>
-      {loading && !item ? (
-        <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} />
-      ) : null}
+      {loading && !item ? <ActivityIndicator color={PRIMARY} style={styles.loader} /> : null}
       {item ? (
-        <Card>
-          <DetailRow label="Document name" value={item.document_name} />
-          <DetailRow label="Batch" value={item.batch_name} />
-          <DetailRow label="Type" value={item.type} />
-          <DetailRow label="Status" value={item.status ? 'Active' : 'Hidden'} />
-          {item.type === 'link' ? (
-            <>
-              <DetailRow label="Link" value={item.link_url} />
-              <Pressable style={styles.btn} onPress={shareLink}>
-                <Text style={styles.btnText}>Share link</Text>
+        <>
+          <AssignmentHeroCard
+            title={item.document_name}
+            type={item.type}
+            batch={item.batch_name}
+            active={active}
+          />
+
+          <AssignmentStatusToggle active={active} onChange={toggleStatus} />
+
+          <Card title="Details">
+            <AssignmentInfoRow icon="document-text-outline" label="Document name" value={item.document_name} />
+            <AssignmentInfoRow icon="people-outline" label="Batch" value={item.batch_name} />
+            <AssignmentInfoRow
+              icon={isLink ? 'link-outline' : 'document-attach-outline'}
+              label="Type"
+              value={isLink ? 'Link' : 'File'}
+            />
+            {isLink ? (
+              <AssignmentInfoRow icon="globe-outline" label="Link" value={item.link_url ?? item.document} last />
+            ) : (
+              <AssignmentInfoRow icon="folder-outline" label="File" value={item.document} last />
+            )}
+          </Card>
+
+          {isLink ? (
+            <View style={styles.actions}>
+              <Pressable style={styles.primaryBtn} onPress={openLink}>
+                <AppIcon name="open-outline" family="ionicons" size={18} color="#fff" />
+                <Text style={[styles.primaryBtnText, platformWeight('800')]}>Open link</Text>
               </Pressable>
-            </>
-          ) : (
-            <>
-              <DetailRow label="File" value={item.document} />
               <Pressable
-                style={styles.btn}
-                onPress={() => navigation.navigate('AssignmentFile', { id })}>
-                <Text style={styles.btnText}>View file in app</Text>
+                style={styles.secondaryBtn}
+                onPress={() =>
+                  Share.share({
+                    message: linkUrl ?? String(item.link_url ?? ''),
+                    title: item.document_name,
+                  })
+                }>
+                <AppIcon name="share-outline" family="ionicons" size={18} color={PRIMARY} />
+                <Text style={[styles.secondaryBtnText, platformWeight('800')]}>Share link</Text>
               </Pressable>
-            </>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.primaryBtn}
+              onPress={() => navigation.navigate('AssignmentFile', { id })}>
+              <AppIcon name="document-text-outline" family="ionicons" size={18} color="#fff" />
+              <Text style={[styles.primaryBtnText, platformWeight('800')]}>View file in app</Text>
+            </Pressable>
           )}
-        </Card>
+
+          <Pressable style={styles.dangerBtn} onPress={confirmDelete}>
+            <AppIcon name="trash-outline" family="ionicons" size={18} color={theme.danger} />
+            <Text style={[styles.dangerBtnText, platformWeight('700')]}>Delete assignment</Text>
+          </Pressable>
+        </>
       ) : null}
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  btn: {
-    backgroundColor: PRIMARY,
-    paddingVertical: 14,
-    borderRadius: 8,
+  loader: { marginTop: 24 },
+  actions: { gap: 10, marginBottom: 10 },
+  primaryBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: PRIMARY,
+    paddingVertical: 15,
+    borderRadius: 14,
+    marginBottom: 10,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  btnText: { color: '#fff', fontWeight: '700' },
+  primaryBtnText: { color: '#fff', fontSize: 15 },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: theme.card,
+    paddingVertical: 15,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginBottom: 14,
+  },
+  secondaryBtnText: { color: PRIMARY, fontSize: 15 },
+  dangerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff5f5',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    marginBottom: 20,
+  },
+  dangerBtnText: { color: theme.danger, fontSize: 15 },
 });

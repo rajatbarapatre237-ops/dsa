@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -16,22 +16,28 @@ import TestResultsScreen from '../screens/TestResultsScreen';
 import ClassTestResultDetailScreen from '../screens/ClassTestResultDetailScreen';
 import AccountHomeScreen from '../screens/AccountHomeScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import AppIcon from '../components/AppIcon';
 import { PRIMARY } from '../config';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
+  Home: { active: 'home', inactive: 'home-outline' },
+  Academics: { active: 'school', inactive: 'school-outline' },
+  Assignments: { active: 'document-text', inactive: 'document-text-outline' },
+  Account: { active: 'person', inactive: 'person-outline' },
+};
+
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Home: '🏠',
-    Academics: '📚',
-    Assignments: '📝',
-    Account: '👤',
-  };
+  const icon = TAB_ICONS[label] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+
   return (
-    <Text style={[styles.icon, focused && styles.iconFocused]}>
-      {icons[label] ?? '•'}
-    </Text>
+    <AppIcon
+      name={focused ? icon.active : icon.inactive}
+      size={22}
+      color={focused ? PRIMARY : '#94a3b8'}
+    />
   );
 }
 
@@ -89,13 +95,5 @@ export default function MainTabs() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 62,
-    paddingBottom: 8,
-    paddingTop: 6,
-    borderTopColor: '#e2e8f0',
-    backgroundColor: '#fff',
-  },
-  icon: { fontSize: 22, opacity: 0.5 },
-  iconFocused: { opacity: 1 },
+  tabBar: { height: 62, paddingBottom: 8, paddingTop: 6, backgroundColor: '#fff' },
 });

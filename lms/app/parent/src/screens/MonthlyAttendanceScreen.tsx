@@ -1,17 +1,26 @@
-import React, { useCallback, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
-import { Card } from '../components/Card';
-import { DataList } from '../components/DataList';
+import {
+  MonthAttendanceSummary,
+  RecentAttendanceCard,
+  monthAttendanceStats,
+} from '../components/DashboardUi';
 import { LmsApi } from '../api/lms';
-import { theme } from '../ui/theme';
 
 export default function MonthlyAttendanceScreen() {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<any[]>([]);
-  const month = new Date().toISOString().slice(0, 7);
+  const month = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const monthLabel = useMemo(
+    () =>
+      new Date().toLocaleString('en-IN', {
+        month: 'long',
+        year: 'numeric',
+      }),
+    [],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -27,29 +36,25 @@ export default function MonthlyAttendanceScreen() {
     load();
   }, [load]);
 
+  const stats = monthAttendanceStats(items);
+  const sortedRecords = [...items].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
   return (
     <ScreenLayout
       title="Monthly Attendance"
-      subtitle={month}
+      subtitle={monthLabel}
       onBack={() => navigation.navigate('AttendanceHub')}
       refreshing={loading}
       onRefresh={load}>
-      <Card>
-        <DataList
-          loading={loading}
-          items={items}
-          emptyText="No attendance this month"
-          renderItem={(r: any) => (
-            <Text style={styles.line}>
-              {r.date}: {r.status} — in {r.entry_time ?? '—'} / out {r.exit_time ?? '—'}
-            </Text>
-          )}
-        />
-      </Card>
+      <MonthAttendanceSummary
+        monthLabel={monthLabel}
+        present={stats.present}
+        absent={stats.absent}
+        total={stats.total}
+        percent={stats.percent}
+      />
+
+      <RecentAttendanceCard records={sortedRecords} />
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  line: { fontSize: 14, color: theme.text, marginBottom: 8 },
-});
