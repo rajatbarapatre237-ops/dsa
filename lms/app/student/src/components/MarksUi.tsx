@@ -1,8 +1,21 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  FlatList,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import AppIcon from './AppIcon';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HORIZONTAL_PADDING = 16;
+const MARKS_PAGE_WIDTH = SCREEN_WIDTH - SCREEN_HORIZONTAL_PADDING * 2;
 
 export type TestResult = {
   test_name?: string | null;
@@ -169,6 +182,145 @@ export function MarksOverviewCard({
           <Text style={styles.overviewStatLabel}>Total tests</Text>
         </View>
       </View>
+    </View>
+  );
+}
+
+function MarksSlideCard({
+  result,
+  onPress,
+}: {
+  result: TestResult;
+  onPress?: () => void;
+}) {
+  const tone = resultTone(result);
+  const obtained = result.marks_obtained ?? '—';
+  const total = result.total_marks ?? '—';
+  const percent =
+    Number(result.marks_obtained) && Number(result.total_marks)
+      ? Math.round((Number(result.marks_obtained) / Number(result.total_marks)) * 100)
+      : null;
+
+  const content = (
+    <View style={styles.slideCard}>
+      <View style={styles.slideTop}>
+        <View style={styles.slideText}>
+          <Text style={styles.slideEyebrow}>Class test</Text>
+          <Text style={styles.slideTitle} numberOfLines={2}>
+            {result.test_name ?? 'Test'}
+          </Text>
+          <Text style={styles.slideMeta} numberOfLines={1}>
+            {[formatShortDate(result.test_date), result.subject_name].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        <View style={styles.slideScoreBubble}>
+          <Text style={styles.slideScoreValue}>
+            {obtained}
+            <Text style={styles.slideScoreMax}>/{total}</Text>
+          </Text>
+          {percent != null ? <Text style={styles.slidePercent}>{percent}%</Text> : null}
+        </View>
+      </View>
+      <View style={styles.slideFooter}>
+        <View style={[styles.resultBadge, { backgroundColor: tone.bg }]}>
+          <AppIcon
+            name={tone.label === 'Pass' ? 'checkmark-circle' : tone.label === 'Fail' ? 'close-circle' : 'help-circle'}
+            size={14}
+            color={tone.color}
+          />
+          <Text style={[styles.resultBadgeText, { color: tone.color }]}>{tone.label}</Text>
+        </View>
+        {onPress ? (
+          <View style={styles.slideTapHint}>
+            <Text style={styles.slideTapText}>Details</Text>
+            <AppIcon name="chevron-forward" size={14} color={PRIMARY} />
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressedCard}>
+        {content}
+      </Pressable>
+    );
+  }
+  return content;
+}
+
+export function RecentMarksCarousel({
+  results,
+  onItemPress,
+}: {
+  results: TestResult[];
+  onItemPress?: (result: TestResult) => void;
+}) {
+  const listRef = useRef<FlatList<TestResult>>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  if (!results.length) {
+    return (
+      <View style={styles.carouselEmpty}>
+        <View style={styles.latestEmptyIcon}>
+          <AppIcon name="school-outline" size={24} color={PRIMARY} />
+        </View>
+        <Text style={styles.carouselEmptyTitle}>No test marks yet</Text>
+        <Text style={styles.carouselEmptySub}>Recent class test scores will appear here</Text>
+      </View>
+    );
+  }
+
+  function updateActiveIndex(offset: number) {
+    const index = Math.round(offset / MARKS_PAGE_WIDTH);
+    if (index >= 0 && index < results.length && index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  }
+
+  function onScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    updateActiveIndex(event.nativeEvent.contentOffset.x);
+  }
+
+  return (
+    <View style={styles.carouselWrap}>
+      <FlatList
+        ref={listRef}
+        horizontal
+        nestedScrollEnabled
+        pagingEnabled
+        data={results}
+        keyExtractor={(item, index) => `${item.test_name}-${item.test_date}-${index}`}
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={MARKS_PAGE_WIDTH}
+        snapToAlignment="start"
+        disableIntervalMomentum
+        getItemLayout={(_, index) => ({
+          length: MARKS_PAGE_WIDTH,
+          offset: MARKS_PAGE_WIDTH * index,
+          index,
+        })}
+        onScroll={onScroll}
+        onMomentumScrollEnd={event => updateActiveIndex(event.nativeEvent.contentOffset.x)}
+        scrollEventThrottle={16}
+        renderItem={({ item }) => (
+          <View style={styles.carouselItem}>
+            <MarksSlideCard result={item} onPress={onItemPress ? () => onItemPress(item) : undefined} />
+          </View>
+        )}
+      />
+      {results.length > 1 ? (
+        <View style={styles.carouselDots}>
+          {results.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -478,4 +630,86 @@ const styles = StyleSheet.create({
   },
   recentBadgeText: { fontSize: 10, fontWeight: '800' },
   recentEmpty: { fontSize: 14, color: theme.muted, textAlign: 'center', paddingVertical: 12 },
+  carouselWrap: { marginBottom: 14 },
+  carouselItem: {
+    width: MARKS_PAGE_WIDTH,
+  },
+  slideCard: {
+    width: '100%',
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: theme.border,
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    elevation: 3,
+    minHeight: 148,
+  },
+  slideTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  slideText: { flex: 1 },
+  slideEyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  slideTitle: { fontSize: 17, fontWeight: '800', color: theme.text, marginTop: 4, lineHeight: 22 },
+  slideMeta: { fontSize: 12, color: theme.muted, marginTop: 6 },
+  slideScoreBubble: {
+    alignItems: 'center',
+    backgroundColor: theme.primarySoft,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 76,
+  },
+  slideScoreValue: { fontSize: 22, fontWeight: '800', color: PRIMARY },
+  slideScoreMax: { fontSize: 13, fontWeight: '700', color: theme.muted },
+  slidePercent: { fontSize: 11, fontWeight: '700', color: theme.muted, marginTop: 2 },
+  slideFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+  },
+  slideTapHint: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  slideTapText: { fontSize: 12, fontWeight: '700', color: PRIMARY },
+  carouselDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingBottom: 2,
+  },
+  carouselDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#cbd5e1',
+  },
+  carouselDotActive: {
+    width: 24,
+    backgroundColor: PRIMARY,
+  },
+  carouselEmpty: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+  },
+  carouselEmptyTitle: { fontSize: 15, fontWeight: '800', color: theme.text, marginTop: 4 },
+  carouselEmptySub: { fontSize: 12, color: theme.muted, marginTop: 4, textAlign: 'center' },
 });

@@ -7,35 +7,37 @@ import { DataList } from '../components/DataList';
 import ListRow from '../components/ListRow';
 import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function ClassTestsScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.classTests();
-      setItems(res.tests ?? []);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.classTests();
+        setItems(res.tests ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   return (
     <ScreenLayout
       title="Class Tests"
       subtitle="Create & enter marks"
       onBack={() => navigation.navigate('WorkHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         <Text style={styles.hint}>
           Tap a test to enter marks. Use “Create class test” from the Work tab to add a new one.

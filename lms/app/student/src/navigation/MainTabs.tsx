@@ -48,6 +48,9 @@ function AcademicsStack() {
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="Attendance" component={AttendanceScreen} />
       <Stack.Screen name="Transactions" component={TransactionsScreen} />
+      <Stack.Screen name="TestResults" component={TestResultsScreen} />
+      <Stack.Screen name="AllTestMarks" children={() => <TestResultsScreen allMarks />} />
+      <Stack.Screen name="ClassTestResultDetail" component={ClassTestResultDetailScreen} />
     </Stack.Navigator>
   );
 }
@@ -59,9 +62,6 @@ function AssignmentsStack() {
       <Stack.Screen name="AssignmentsList" component={AssignmentsScreen} />
       <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
       <Stack.Screen name="AssignmentFile" component={AssignmentFileScreen} />
-      <Stack.Screen name="TestResults" component={TestResultsScreen} />
-      <Stack.Screen name="AllTestMarks" children={() => <TestResultsScreen allMarks />} />
-      <Stack.Screen name="ClassTestResultDetail" component={ClassTestResultDetailScreen} />
     </Stack.Navigator>
   );
 }

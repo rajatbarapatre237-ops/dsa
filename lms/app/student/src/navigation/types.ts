@@ -8,6 +8,9 @@ export type AcademicsStackParamList = {
   Courses: undefined;
   Attendance: undefined;
   Transactions: undefined;
+  TestResults: undefined;
+  AllTestMarks: undefined;
+  ClassTestResultDetail: { result: Record<string, unknown> };
 };
 
 export type AssignmentsStackParamList = {
@@ -15,9 +18,6 @@ export type AssignmentsStackParamList = {
   AssignmentsList: undefined;
   AssignmentDetail: { id: number };
   AssignmentFile: { id: number };
-  TestResults: undefined;
-  AllTestMarks: undefined;
-  ClassTestResultDetail: { result: Record<string, unknown> };
 };
 
 export type AccountStackParamList = {

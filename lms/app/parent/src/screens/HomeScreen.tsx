@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { ActionCard } from '../components/Card';
 import { AttendanceOverviewCard, HeroCard, SectionTitle } from '../components/DashboardUi';
@@ -7,37 +7,38 @@ import { formatStudentDisplayId } from '../utils/studentId';
 import { LmsApi } from '../api/lms';
 import { APP_SUBTITLE } from '../config';
 import { theme } from '../ui/theme';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [data, setData] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.dashboard();
-      setData(res.dashboard ?? res);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    load();
-  }, [load]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.dashboard();
+        setData(res.dashboard ?? res);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
   );
+
+  useRefreshOnFocus(() => load());
 
   const child = data?.child;
   const att = data?.today_attendance;
 
   return (
-    <ScreenLayout title="Dashboard" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Dashboard"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <HeroCard
         eyebrow={APP_SUBTITLE}
         title={child?.name ?? 'Your child'}

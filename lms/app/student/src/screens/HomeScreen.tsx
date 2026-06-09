@@ -40,7 +40,10 @@ export default function HomeScreen() {
     .slice(0, 3);
 
   return (
-    <ScreenLayout title="Dashboard" refreshing={ctx.loading} onRefresh={ctx.refresh}>
+    <ScreenLayout
+      title="Dashboard"
+      refreshing={ctx.refreshing}
+      onRefresh={() => ctx.refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}

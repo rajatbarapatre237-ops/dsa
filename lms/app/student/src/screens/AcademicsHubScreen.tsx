@@ -14,9 +14,21 @@ import {
   attendanceFromSummary,
   monthAttendanceFromRecords,
 } from '../components/StudentHubUi';
+import {
+  ExploreMarksTiles,
+  MarksOverviewCard,
+  RecentMarksCard,
+  RecentMarksCarousel,
+  TestResult,
+  marksStats,
+} from '../components/MarksUi';
 import { useStudentContext } from '../hooks/useStudentContext';
 import { useRefreshStudentOnFocus } from '../hooks/useRefreshStudentOnFocus';
 import { AcademicsStackParamList } from '../navigation/types';
+
+function sortByDateDesc(results: TestResult[]) {
+  return [...results].sort((a, b) => String(b.test_date ?? '').localeCompare(String(a.test_date ?? '')));
+}
 
 export default function AcademicsHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AcademicsStackParamList>>();
@@ -39,8 +51,20 @@ export default function AcademicsHubScreen() {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 5);
 
+  const sortedMarks = useMemo(() => sortByDateDesc(ctx.marksResults), [ctx.marksResults]);
+  const marksOverview = marksStats(sortedMarks);
+  const recentMarks = sortedMarks.slice(0, 5);
+  const carouselMarks = sortedMarks.slice(0, 8);
+
+  const openMarkDetail = (result: TestResult) => {
+    navigation.navigate('ClassTestResultDetail', { result: result as Record<string, unknown> });
+  };
+
   return (
-    <ScreenLayout title="Academics" refreshing={ctx.loading} onRefresh={ctx.refresh}>
+    <ScreenLayout
+      title="Academics"
+      refreshing={ctx.refreshing}
+      onRefresh={() => ctx.refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}
@@ -60,6 +84,20 @@ export default function AcademicsHubScreen() {
         percent={attendance.percent}
       />
 
+      <SectionTitle>Marks</SectionTitle>
+      <RecentMarksCarousel results={carouselMarks} onItemPress={openMarkDetail} />
+      <MarksOverviewCard
+        total={marksOverview.total}
+        passed={marksOverview.passed}
+        failed={marksOverview.failed}
+        averagePercent={marksOverview.averagePercent}
+        passRate={marksOverview.passRate}
+      />
+      <ExploreMarksTiles
+        onAllMarks={() => navigation.navigate('AllTestMarks')}
+        onClassResults={() => navigation.navigate('TestResults')}
+      />
+
       <SectionTitle>Explore</SectionTitle>
       <ExploreAcademicsTiles
         onCourses={() => navigation.navigate('Courses')}
@@ -73,6 +111,13 @@ export default function AcademicsHubScreen() {
         onAction={() => navigation.navigate('Attendance')}
       />
       <RecentAttendanceCard records={recentRecords} />
+
+      <SectionHeader
+        title="Recent tests"
+        actionLabel="See all"
+        onAction={() => navigation.navigate('AllTestMarks')}
+      />
+      <RecentMarksCard results={recentMarks} onItemPress={openMarkDetail} showHeader={false} />
     </ScreenLayout>
   );
 }

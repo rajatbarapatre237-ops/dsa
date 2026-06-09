@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { SectionTitle, StudentContextCard } from '../components/DashboardUi';
@@ -13,6 +13,8 @@ import {
 } from '../components/MarksUi';
 import { LmsApi } from '../api/lms';
 import { MarksStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 function sortByDateDesc(results: TestResult[]) {
   return [...results].sort((a, b) => String(b.test_date ?? '').localeCompare(String(a.test_date ?? '')));
@@ -20,33 +22,29 @@ function sortByDateDesc(results: TestResult[]) {
 
 export default function MarksHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MarksStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [dashboard, setDashboard] = useState<any>(null);
   const [results, setResults] = useState<TestResult[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [dashRes, marksRes]: any[] = await Promise.all([
-        LmsApi.dashboard(),
-        LmsApi.classTestResults(),
-      ]);
-      setDashboard(dashRes.dashboard ?? dashRes);
-      setResults(marksRes.results ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    load();
-  }, [load]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const [dashRes, marksRes]: any[] = await Promise.all([
+          LmsApi.dashboard(),
+          LmsApi.classTestResults(),
+        ]);
+        setDashboard(dashRes.dashboard ?? dashRes);
+        setResults(marksRes.results ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
   );
+
+  useRefreshOnFocus(() => load());
 
   const child = dashboard?.child;
   const sorted = useMemo(() => sortByDateDesc(results), [results]);
@@ -59,7 +57,10 @@ export default function MarksHubScreen() {
   };
 
   return (
-    <ScreenLayout title="Marks" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Marks"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <StudentContextCard name={child?.name} course={child?.course_name} batch={child?.batch} />
 
       <LatestMarksCard

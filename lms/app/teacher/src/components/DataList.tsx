@@ -14,7 +14,7 @@ export function DataList({
   emptyText: string;
   renderItem: (item: any) => React.ReactElement;
 }) {
-  if (loading) {
+  if (loading && !items.length) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={PRIMARY} size="large" />

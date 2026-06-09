@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { LmsApi } from '../api/lms';
@@ -14,16 +15,23 @@ import {
   resolveStudentId,
   StoredStudentUser,
 } from '../components/StudentHubUi';
+import { TestResult } from '../components/MarksUi';
+
+type LoadOptions = {
+  showRefresh?: boolean;
+};
 
 type StudentContextValue = {
   loading: boolean;
-  refresh: () => Promise<void>;
+  refreshing: boolean;
+  refresh: (options?: LoadOptions) => Promise<void>;
   applyProfile: (profile: Record<string, unknown>) => Promise<void>;
   name: string;
   studentId: string | null;
   profile: Record<string, unknown> | null;
   dashboard: Record<string, unknown> | null;
   assignments: any[];
+  marksResults: TestResult[];
   attendanceSummary: any[];
   monthRecords: any[];
   course: string | null;
@@ -42,67 +50,84 @@ async function syncStoredUserName(profile: Record<string, unknown> | null) {
 }
 
 export function StudentContextProvider({ children }: { children: React.ReactNode }) {
+  const hasDataRef = useRef(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [storedUser, setStoredUser] = useState<StoredStudentUser | null>(null);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [dashboard, setDashboard] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [marksResults, setMarksResults] = useState<TestResult[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<any[]>([]);
   const [monthRecords, setMonthRecords] = useState<any[]>([]);
 
   const month = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const user = await AppStorage.getUser<StoredStudentUser>();
-      setStoredUser(user);
-
-      const [dashResult, attendResult, assignResult, profileResult] = await Promise.allSettled([
-        LmsApi.dashboard(),
-        LmsApi.attendance(month),
-        LmsApi.assignments(),
-        LmsApi.profile(),
-      ]);
-
-      if (dashResult.status === 'fulfilled') {
-        const data = dashResult.value.dashboard ?? dashResult.value;
-        setDashboard(data);
-        setAttendanceSummary(data?.attendance_summary ?? []);
+  const load = useCallback(
+    async (options?: LoadOptions) => {
+      if (hasDataRef.current) {
+        if (options?.showRefresh) {
+          setRefreshing(true);
+        }
       } else {
-        setDashboard(null);
-        setAttendanceSummary([]);
+        setLoading(true);
       }
 
-      if (attendResult.status === 'fulfilled') {
-        setMonthRecords(recordsForMonth(attendResult.value.records ?? [], month));
-      } else {
-        setMonthRecords([]);
-      }
+      try {
+        const user = await AppStorage.getUser<StoredStudentUser>();
+        setStoredUser(user);
 
-      if (assignResult.status === 'fulfilled') {
-        setAssignments(assignResult.value.assignments ?? []);
-      } else {
-        setAssignments([]);
-      }
+        const [dashResult, attendResult, assignResult, profileResult, marksResult] =
+          await Promise.allSettled([
+            LmsApi.dashboard(),
+            LmsApi.attendance(month),
+            LmsApi.assignments(),
+            LmsApi.profile(),
+            LmsApi.classTestResults(),
+          ]);
 
-      let nextProfile: Record<string, unknown> | null = null;
-      if (profileResult.status === 'fulfilled') {
-        nextProfile = profileResult.value.profile ?? null;
-      } else if (dashResult.status === 'fulfilled') {
-        const data = dashResult.value.dashboard ?? dashResult.value;
-        nextProfile = data?.profile ?? null;
-      }
-      setProfile(nextProfile);
+        if (dashResult.status === 'fulfilled') {
+          const data = dashResult.value.dashboard ?? dashResult.value;
+          setDashboard(data);
+          setAttendanceSummary(data?.attendance_summary ?? []);
+        }
 
-      const syncedUser = await syncStoredUserName(nextProfile);
-      if (syncedUser) {
-        setStoredUser(syncedUser);
+        if (attendResult.status === 'fulfilled') {
+          setMonthRecords(recordsForMonth(attendResult.value.records ?? [], month));
+        }
+
+        if (assignResult.status === 'fulfilled') {
+          setAssignments(assignResult.value.assignments ?? []);
+        }
+
+        if (marksResult.status === 'fulfilled') {
+          setMarksResults(marksResult.value.results ?? []);
+        }
+
+        let nextProfile: Record<string, unknown> | null = null;
+        if (profileResult.status === 'fulfilled') {
+          nextProfile = profileResult.value.profile ?? null;
+        } else if (dashResult.status === 'fulfilled') {
+          const data = dashResult.value.dashboard ?? dashResult.value;
+          nextProfile = data?.profile ?? null;
+        }
+        if (nextProfile) {
+          setProfile(nextProfile);
+        }
+
+        const syncedUser = await syncStoredUserName(nextProfile);
+        if (syncedUser) {
+          setStoredUser(syncedUser);
+        }
+
+        hasDataRef.current = true;
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+    },
+    [month],
+  );
 
   const applyProfile = useCallback(async (next: Record<string, unknown>) => {
     setProfile(next);
@@ -113,6 +138,7 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
     if (syncedUser) {
       setStoredUser(syncedUser);
     }
+    hasDataRef.current = true;
   }, []);
 
   useEffect(() => {
@@ -126,6 +152,7 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
   const value = useMemo<StudentContextValue>(
     () => ({
       loading,
+      refreshing,
       refresh: load,
       applyProfile,
       name,
@@ -133,6 +160,7 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
       profile,
       dashboard,
       assignments,
+      marksResults,
       attendanceSummary,
       monthRecords,
       course: courseMeta.course,
@@ -140,6 +168,7 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
     }),
     [
       loading,
+      refreshing,
       load,
       applyProfile,
       name,
@@ -147,6 +176,7 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
       profile,
       dashboard,
       assignments,
+      marksResults,
       attendanceSummary,
       monthRecords,
       courseMeta.course,

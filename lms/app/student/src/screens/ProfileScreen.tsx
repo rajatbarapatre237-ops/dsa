@@ -1,18 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Text, StyleSheet, Alert, Pressable } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { FormInput } from '../components/FormInput';
 import { LmsApi } from '../api/lms';
 import { useStudentContext } from '../hooks/useStudentContext';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const ctx = useStudentContext();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -24,34 +26,30 @@ export default function ProfileScreen() {
   const [aadhar, setAadhar] = useState('');
   const [meta, setMeta] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.profile();
-      const p = res.profile ?? {};
-      setMeta(p);
-      setName(p.name ?? '');
-      setAge(p.age ?? '');
-      setMobile(p.mobile ?? '');
-      setSchool(p.school_name ?? '');
-      setEmail(p.email ?? '');
-      setCity(p.city ?? '');
-      setState(p.state ?? '');
-      setAadhar(p.aadhar ?? '');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.profile();
+        const p = res.profile ?? {};
+        setMeta(p);
+        setName(p.name ?? '');
+        setAge(p.age ?? '');
+        setMobile(p.mobile ?? '');
+        setSchool(p.school_name ?? '');
+        setEmail(p.email ?? '');
+        setCity(p.city ?? '');
+        setState(p.state ?? '');
+        setAadhar(p.aadhar ?? '');
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
   );
+
+  useRefreshOnFocus(() => load());
 
   async function save() {
     if (!name.trim()) {
@@ -88,8 +86,8 @@ export default function ProfileScreen() {
       title="Edit Profile"
       subtitle="Your details"
       onBack={() => navigation.navigate('AccountHome')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         <Text style={styles.readonly}>Student ID: {ctx.studentId ?? m.id ?? '—'}</Text>
         <Text style={styles.readonly}>Course: {m.course_name ?? ctx.course ?? '—'}</Text>

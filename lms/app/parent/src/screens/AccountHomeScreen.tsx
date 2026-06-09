@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
@@ -11,6 +11,8 @@ import { formatStudentDisplayId } from '../utils/studentId';
 import { LmsApi } from '../api/lms';
 import { AppStorage } from '../storage/AppStorage';
 import { APP_SUBTITLE, APP_TITLE } from '../config';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 type StoredUser = {
   child_name?: string;
@@ -19,27 +21,29 @@ type StoredUser = {
 
 export default function AccountHomeScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [user, setUser] = useState<StoredUser | null>(null);
   const [child, setChild] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [storedUser, dashRes]: [StoredUser | null, any] = await Promise.all([
-        AppStorage.getUser<StoredUser>(),
-        LmsApi.dashboard(),
-      ]);
-      setUser(storedUser);
-      setChild((dashRes.dashboard ?? dashRes)?.child ?? null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const [storedUser, dashRes]: [StoredUser | null, any] = await Promise.all([
+          AppStorage.getUser<StoredUser>(),
+          LmsApi.dashboard(),
+        ]);
+        setUser(storedUser);
+        setChild((dashRes.dashboard ?? dashRes)?.child ?? null);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   async function logout() {
     Alert.alert('Logout', 'Sign out of this device?', [
@@ -63,7 +67,10 @@ export default function AccountHomeScreen() {
   const studentId = formatStudentDisplayId(user?.student_id ?? child?.id);
 
   return (
-    <ScreenLayout title="Account" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Account"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <AccountProfileCard
         portalLabel={APP_SUBTITLE}
         title={`Parent of ${childName}`}

@@ -15,6 +15,8 @@ import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 import { platformWeight } from '../ui/typography';
 import { WorkStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 function isActiveStatus(status: unknown) {
   return status === 1 || status === '1' || status === true;
@@ -22,24 +24,24 @@ function isActiveStatus(status: unknown) {
 
 export default function AssignmentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.assignments();
-      setItems(res.assignments ?? []);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.assignments();
+        setItems(res.assignments ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   async function toggleStatus(item: any, on: boolean) {
     try {
@@ -77,8 +79,8 @@ export default function AssignmentsScreen() {
       title="Assignments"
       subtitle="Share files and links with batches"
       onBack={() => navigation.navigate('WorkHub')}
-      refreshing={loading}
-      onRefresh={load}
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}
       rightAction={
         <Pressable style={styles.addBtn} onPress={() => navigation.navigate('AddAssignment')}>
           <AppIcon name="add" size={22} color="#fff" />

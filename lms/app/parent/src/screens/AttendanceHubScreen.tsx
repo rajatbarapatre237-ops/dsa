@@ -13,10 +13,12 @@ import {
 } from '../components/DashboardUi';
 import { LmsApi } from '../api/lms';
 import { AttendanceStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function AttendanceHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AttendanceStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [dashboard, setDashboard] = useState<any>(null);
   const [monthRecords, setMonthRecords] = useState<any[]>([]);
 
@@ -30,23 +32,25 @@ export default function AttendanceHubScreen() {
     [],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [dashRes, attendRes]: any[] = await Promise.all([
-        LmsApi.dashboard(),
-        LmsApi.attendance(month),
-      ]);
-      setDashboard(dashRes.dashboard ?? dashRes);
-      setMonthRecords(attendRes.records ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const [dashRes, attendRes]: any[] = await Promise.all([
+          LmsApi.dashboard(),
+          LmsApi.attendance(month),
+        ]);
+        setDashboard(dashRes.dashboard ?? dashRes);
+        setMonthRecords(attendRes.records ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData, month],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const child = dashboard?.child;
   const att = dashboard?.today_attendance;
@@ -56,7 +60,10 @@ export default function AttendanceHubScreen() {
     .slice(0, 5);
 
   return (
-    <ScreenLayout title="Attendance" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Attendance"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <StudentContextCard name={child?.name} course={child?.course_name} batch={child?.batch} />
 
       <AttendanceOverviewCard

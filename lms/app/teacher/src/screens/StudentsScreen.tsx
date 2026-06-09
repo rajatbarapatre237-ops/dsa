@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 import { Text, StyleSheet, View, TextInput, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,7 +27,7 @@ type Pagination = {
 
 export default function StudentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<StudentsStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -86,35 +88,35 @@ export default function StudentsScreen() {
       });
   }, [courseFilter]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.students({
-        page,
-        per_page: PAGE_SIZE,
-        search: debouncedSearch || undefined,
-        course: courseFilter || undefined,
-        batch: batchFilter || undefined,
-      });
-      setItems(res.students ?? []);
-      setPagination(
-        res.pagination ?? {
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.students({
           page,
           per_page: PAGE_SIZE,
-          total: (res.students ?? []).length,
-          total_pages: 1,
-        },
-      );
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedSearch, courseFilter, batchFilter]);
+          search: debouncedSearch || undefined,
+          course: courseFilter || undefined,
+          batch: batchFilter || undefined,
+        });
+        setItems(res.students ?? []);
+        setPagination(
+          res.pagination ?? {
+            page,
+            per_page: PAGE_SIZE,
+            total: (res.students ?? []).length,
+            total_pages: 1,
+          },
+        );
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [page, debouncedSearch, courseFilter, batchFilter, beginLoad, endLoad, markHasData],
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const hasFilters = !!(debouncedSearch || courseFilter || batchFilter);
   const rangeStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.per_page + 1;
@@ -134,7 +136,10 @@ export default function StudentsScreen() {
   }
 
   return (
-    <ScreenLayout title="Students" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Students"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         <View style={styles.searchWrap}>
           <AppIcon name="search" size={18} color={theme.muted} />

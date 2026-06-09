@@ -7,25 +7,29 @@ import { AttendanceOverviewCard } from '../components/DashboardUi';
 import { LmsApi } from '../api/lms';
 import { formatStudentDisplayId } from '../utils/studentId';
 import { theme } from '../ui/theme';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function TodayAttendanceScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [data, setData] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.dashboard();
-      setData(res.dashboard ?? res);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.dashboard();
+        setData(res.dashboard ?? res);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const att = data?.today_attendance;
   const child = data?.child;
@@ -35,8 +39,8 @@ export default function TodayAttendanceScreen() {
       title="Today's attendance"
       subtitle={child?.name ?? 'Your child'}
       onBack={() => navigation.navigate('AttendanceHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <AttendanceOverviewCard
         date={att?.date}
         status={att?.status}

@@ -36,7 +36,10 @@ export default function AccountHomeScreen() {
   }
 
   return (
-    <ScreenLayout title="Account" refreshing={ctx.loading} onRefresh={ctx.refresh}>
+    <ScreenLayout
+      title="Account"
+      refreshing={ctx.refreshing}
+      onRefresh={() => ctx.refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}

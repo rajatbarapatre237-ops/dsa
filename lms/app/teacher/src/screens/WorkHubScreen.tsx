@@ -8,6 +8,8 @@ import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
 import { settleApiCalls } from '../utils/apiError';
 import { WorkStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 function isActiveAssignment(item: any) {
   return item.status === 1 || item.status === '1' || item.status === true;
@@ -29,37 +31,39 @@ function assignmentLabel(item: any) {
 
 export default function WorkHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [assignRes, testsRes] = await settleApiCalls([
-        LmsApi.assignments(),
-        LmsApi.classTests(),
-      ]);
-      setAssignments((assignRes as any)?.assignments ?? []);
-      setTests((testsRes as any)?.tests ?? []);
-    } catch {
-      setAssignments([]);
-      setTests([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const [assignRes, testsRes] = await settleApiCalls([
+          LmsApi.assignments(),
+          LmsApi.classTests(),
+        ]);
+        setAssignments((assignRes as any)?.assignments ?? []);
+        setTests((testsRes as any)?.tests ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const activeAssignments = assignments.filter(a => isActiveAssignment(a) && isMeaningfulAssignment(a));
   const recentAssignments = activeAssignments.slice(0, 3);
   const recentTests = tests.slice(0, 3);
 
   return (
-    <ScreenLayout title="Work" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Work"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         <Text style={styles.summaryTitle}>Assignments & class tests</Text>
         <Text style={styles.summaryHint}>Manage homework, uploads, and test marks</Text>

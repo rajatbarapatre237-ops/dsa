@@ -78,7 +78,7 @@ export default function MainTabs() {
       })}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Attendance" component={AttendanceStack} />
-      <Tab.Screen name="Marks" component={MarksStack} options={{ title: 'Marks' }} />
+      <Tab.Screen name="Marks" component={MarksStack} options={{ title: 'Growth' }} />
       <Tab.Screen name="Account" component={AccountStack} />
     </Tab.Navigator>
   );

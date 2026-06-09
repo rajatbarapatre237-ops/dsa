@@ -5,6 +5,8 @@ import ScreenLayout from '../components/ScreenLayout';
 import { ActionCard, Card } from '../components/Card';
 import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 type AttendanceRecord = {
   date: string;
@@ -34,7 +36,7 @@ function formatRecordLine(record: AttendanceRecord) {
 
 export default function AttendanceHubScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [todayStats, setTodayStats] = useState<{
     total: number;
@@ -42,27 +44,26 @@ export default function AttendanceHubScreen() {
     absent: number;
   } | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.attendance();
-      setRecords(res.records ?? []);
-      setTodayStats({
-        total: Number(res.today_total_students ?? 0),
-        present: Number(res.today_present_students ?? 0),
-        absent: Number(res.today_absent_students ?? 0),
-      });
-    } catch {
-      setRecords([]);
-      setTodayStats({ total: 0, present: 0, absent: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.attendance();
+        setRecords(res.records ?? []);
+        setTodayStats({
+          total: Number(res.today_total_students ?? 0),
+          present: Number(res.today_present_students ?? 0),
+          absent: Number(res.today_absent_students ?? 0),
+        });
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const today = localISODate(new Date());
   const todayRecords = records.filter(r => String(r.date).slice(0, 10) === today);
@@ -79,10 +80,13 @@ export default function AttendanceHubScreen() {
   const recentRecords = (todayRecords.length ? todayRecords : records).slice(0, 4);
 
   return (
-    <ScreenLayout title="Attendance" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Attendance"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         <Text style={styles.monthLabel}>{dayLabel}</Text>
-        <Text style={styles.summaryHint}>Today’s attendance summary</Text>
+        <Text style={styles.summaryHint}>Today's attendance summary</Text>
         <View style={styles.statsRow}>
           <View style={[styles.statBox, styles.statPresent]}>
             <Text style={[styles.statValue, styles.statPresentText]}>{presentCount}</Text>
@@ -129,9 +133,9 @@ export default function AttendanceHubScreen() {
               <Text style={styles.recentText}>{formatRecordLine(record)}</Text>
             </View>
           ))
-        ) : (
+        ) : todayStats ? (
           <Text style={styles.empty}>No attendance marked this month yet</Text>
-        )}
+        ) : null}
       </Card>
     </ScreenLayout>
   );

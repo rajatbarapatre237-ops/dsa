@@ -7,10 +7,12 @@ import {
   monthAttendanceStats,
 } from '../components/DashboardUi';
 import { LmsApi } from '../api/lms';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function MonthlyAttendanceScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
   const month = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const monthLabel = useMemo(
@@ -22,19 +24,21 @@ export default function MonthlyAttendanceScreen() {
     [],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.attendance(month);
-      setItems(res.records ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.attendance(month);
+        setItems(res.records ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData, month],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const stats = monthAttendanceStats(items);
   const sortedRecords = [...items].sort((a, b) => String(b.date).localeCompare(String(a.date)));
@@ -44,8 +48,8 @@ export default function MonthlyAttendanceScreen() {
       title="Monthly Attendance"
       subtitle={monthLabel}
       onBack={() => navigation.navigate('AttendanceHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <MonthAttendanceSummary
         monthLabel={monthLabel}
         present={stats.present}

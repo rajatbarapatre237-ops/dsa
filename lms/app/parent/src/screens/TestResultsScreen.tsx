@@ -8,6 +8,8 @@ import ListRow from '../components/ListRow';
 import { MarksOverviewCard, TestResult, marksStats } from '../components/MarksUi';
 import { LmsApi } from '../api/lms';
 import { MarksStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 function sortByDateDesc(results: TestResult[]) {
   return [...results].sort((a, b) => String(b.test_date ?? '').localeCompare(String(a.test_date ?? '')));
@@ -15,22 +17,24 @@ function sortByDateDesc(results: TestResult[]) {
 
 export default function TestResultsScreen({ allMarks }: { allMarks?: boolean }) {
   const navigation = useNavigation<NativeStackNavigationProp<MarksStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<TestResult[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = allMarks ? await LmsApi.allTestMarks() : await LmsApi.classTestResults();
-      setItems(res.results ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, [allMarks]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = allMarks ? await LmsApi.allTestMarks() : await LmsApi.classTestResults();
+        setItems(res.results ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [allMarks, beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const sorted = useMemo(() => sortByDateDesc(items), [items]);
   const stats = marksStats(sorted);
@@ -40,8 +44,8 @@ export default function TestResultsScreen({ allMarks }: { allMarks?: boolean }) 
       title={allMarks ? 'All Test Marks' : 'Class Test Results'}
       subtitle="Tap for details"
       onBack={() => navigation.navigate('MarksHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <MarksOverviewCard
         total={stats.total}
         passed={stats.passed}

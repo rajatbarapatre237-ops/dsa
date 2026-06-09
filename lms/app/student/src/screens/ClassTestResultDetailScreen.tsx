@@ -4,10 +4,10 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { LatestMarksCard, isTestPassed } from '../components/MarksUi';
-import { AssignmentsStackParamList } from '../navigation/types';
+import { AcademicsStackParamList } from '../navigation/types';
 import { theme } from '../ui/theme';
 
-type Props = NativeStackScreenProps<AssignmentsStackParamList, 'ClassTestResultDetail'>;
+type Props = NativeStackScreenProps<AcademicsStackParamList, 'ClassTestResultDetail'>;
 
 export default function ClassTestResultDetailScreen({ navigation, route }: Props) {
   const { result } = route.params;

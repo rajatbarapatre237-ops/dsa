@@ -11,33 +11,37 @@ import {
 import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
 import { AssignmentsStackParamList } from '../navigation/types';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 export default function AssignmentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AssignmentsStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.assignments();
-      setItems(res.assignments ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.assignments();
+        setItems(res.assignments ?? []);
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   return (
     <ScreenLayout
       title="Assignments"
       subtitle="Active for your batch"
       onBack={() => navigation.navigate('AssignmentsHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <AssignmentsSummaryCard count={items.length} />
 
       <SectionTitle>All assignments</SectionTitle>
@@ -52,9 +56,9 @@ export default function AssignmentsScreen() {
               {index < items.length - 1 ? <View style={styles.divider} /> : null}
             </View>
           ))
-        ) : (
+        ) : !loading ? (
           <Text style={styles.empty}>No assignments for your batch</Text>
-        )}
+        ) : null}
       </View>
     </ScreenLayout>
   );

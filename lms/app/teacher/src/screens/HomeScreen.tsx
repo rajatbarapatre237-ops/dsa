@@ -8,6 +8,8 @@ import { LmsApi } from '../api/lms';
 import { APP_SUBTITLE, PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 import { settleApiCalls } from '../utils/apiError';
+import { useStaleLoad } from '../hooks/useStaleLoad';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 type Summary = {
   dashboard: any;
@@ -43,34 +45,34 @@ function assignmentSubtitle(item: any) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [summary, setSummary] = useState<Summary | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [dashRes, assignRes, attendRes, testsRes] = await settleApiCalls([
-        LmsApi.dashboard(),
-        LmsApi.assignments(),
-        LmsApi.attendance(),
-        LmsApi.classTests(),
-      ]);
-      setSummary({
-        dashboard: (dashRes as any)?.dashboard ?? dashRes ?? null,
-        assignments: (assignRes as any)?.assignments ?? [],
-        attendanceCount: Number((attendRes as any)?.today_present_students ?? 0),
-        tests: (testsRes as any)?.tests ?? [],
-      });
-    } catch {
-      setSummary(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const [dashRes, assignRes, attendRes, testsRes] = await settleApiCalls([
+          LmsApi.dashboard(),
+          LmsApi.assignments(),
+          LmsApi.attendance(),
+          LmsApi.classTests(),
+        ]);
+        setSummary({
+          dashboard: (dashRes as any)?.dashboard ?? dashRes ?? null,
+          assignments: (assignRes as any)?.assignments ?? [],
+          attendanceCount: Number((attendRes as any)?.today_present_students ?? 0),
+          tests: (testsRes as any)?.tests ?? [],
+        });
+        markHasData();
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(() => load());
 
   const data = summary?.dashboard;
   const teacher = data?.teacher;
@@ -81,7 +83,10 @@ export default function HomeScreen() {
   const teacherName = teacher?.name ?? teacher?.email ?? 'Teacher';
 
   return (
-    <ScreenLayout title="Dashboard" refreshing={loading} onRefresh={load}>
+    <ScreenLayout
+      title="Dashboard"
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <HeroCard
         eyebrow={APP_SUBTITLE}
         title={`Welcome, ${teacherName}`}
@@ -172,9 +177,9 @@ export default function HomeScreen() {
               <Text style={styles.muted}>{assignmentSubtitle(assignment)}</Text>
             </Pressable>
           ))
-        ) : (
+        ) : summary ? (
           <Text style={styles.empty}>No active assignments</Text>
-        )}
+        ) : null}
       </Card>
     </ScreenLayout>
   );
