@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'api.token' => \App\Http\Middleware\AuthenticateApiToken::class,
             'api.role' => \App\Http\Middleware\EnsureApiRole::class,
+            'dashboard.auth' => \App\Http\Middleware\EnsureDashboardAuth::class,
+            'dashboard.guest' => \App\Http\Middleware\RedirectIfDashboardAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
