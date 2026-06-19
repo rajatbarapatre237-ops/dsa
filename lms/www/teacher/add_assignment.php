@@ -10,7 +10,20 @@ if (!isset($_SESSION['email'])) {
 }
   $connect=new connect();
   $fun=new fun($connect->dbconnect());
-  $batches = $fun->getAllBatches();
+  //$batches = $fun->getAllBatches();
+    $email = $_SESSION['email'];
+    $courses = $fun->fetchTeacherCourses($email);
+    $teacherBatches = [];
+
+    while($course = mysqli_fetch_assoc($courses))
+    {
+        $batches = $fun->getBatchByCourse($course['course']);
+    
+        while($batch = mysqli_fetch_assoc($batches))
+        {
+            $teacherBatches[] = $batch['name'];
+        }
+    }
   
   if(isset($_POST['submit'])){
      if($_POST['select']== ''){
@@ -120,15 +133,16 @@ if (!isset($_SESSION['email'])) {
                 <div class="col-md-6">
                     <select name="batch" id="batch" class="form-select">
                         <option value="">Select Batch</option>
-                        <?php 
-                            if(mysqli_num_rows($batches)>0){
-                                while($res = mysqli_fetch_assoc($batches)){       
-                        ?>
-                                    <option value="<?php echo $res['name']?>"><?php echo $res['name']?></option>
                         <?php
-                                }
+                       foreach(array_unique($teacherBatches) as $batch)
+                            {
+                            ?>
+                                <option value="<?php echo $batch; ?>">
+                                    <?php echo $batch; ?>
+                                </option>
+                            <?php
                             }
-                        ?>
+                            ?>
                     </select>
                 </div>
                 <div class="col-md-6">

@@ -37,6 +37,11 @@
           <i class="bi bi-circle"></i><span>View Attendance</span>
         </a>
       </li>
+      <li>
+        <a href="my_attendance.php">
+          <i class="bi bi-circle"></i><span>My Attendance</span>
+        </a>
+      </li>
     </ul>
   </li>
 

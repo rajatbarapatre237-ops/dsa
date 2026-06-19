@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\SetupController;
 use App\Livewire\Dashboard\ContactQueries;
 use App\Livewire\Dashboard\EditPage;
 use App\Livewire\Dashboard\Home;
@@ -15,9 +16,8 @@ Route::get('/about-us', fn () => app(PublicPageController::class)->show('about-u
 Route::get('/contact', [ContactController::class, 'show'])->name('contact.show');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
-Route::get('/deploy/setup', function () {
-    return response()->json((require base_path('bootstrap/deploy-setup.php'))());
-});
+Route::get('/setup', SetupController::class)->name('setup');
+Route::redirect('/deploy/setup', '/setup');
 
 Route::middleware('dashboard.guest')->group(function () {
     Route::livewire('/admin', Login::class)->name('dashboard.login');

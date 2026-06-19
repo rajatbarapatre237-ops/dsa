@@ -80,7 +80,7 @@ export default function CreateClassTestScreen() {
       });
       const createdTestId = res.id != null ? String(res.id) : undefined;
       Alert.alert('Test created', 'Enter marks for students now?', [
-        { text: 'Later', style: 'cancel' },
+        { text: 'Later', style: 'cancel', onPress: () => navigation.navigate('WorkHub') },
         {
           text: 'Enter marks',
           onPress: () => goToEnterMarks(createdTestId),

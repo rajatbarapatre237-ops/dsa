@@ -18,14 +18,23 @@ export const LmsApi = {
     http
       .get(`${p}/attendance`, { params: { month: month ?? new Date().toISOString().slice(0, 7) } })
       .then(r => r.data),
-  assignments: () => http.get(`${p}/assignments`).then(r => r.data),
+  myAttendance: () => http.get(`${p}/my-attendance`).then(r => r.data),
+  assignments: (params?: { content_kind?: 'assignment' | 'note' }) =>
+    http.get(`${p}/assignments`, { params }).then(r => r.data),
   assignment: (id: number) => http.get(`${p}/assignments/${id}`).then(r => r.data),
   student: (id: string) => http.get(`${p}/students/${id}`).then(r => r.data),
+  studentAttendanceSummary: (id: string) =>
+    http.get(`${p}/students/${id}/attendance-summary`).then(r => r.data),
   allBatches: () => http.get(`${p}/form/all-batches`).then(r => r.data),
+  subjectsForBatch: (batch_name: string) =>
+    http.get(`${p}/form/subjects`, { params: { batch_name } }).then(r => r.data),
   createAssignmentLink: (body: {
     type: 'link';
+    content_kind?: 'assignment' | 'note';
     batch_name: string;
     document_name: string;
+    subject_id?: number;
+    subject_name?: string;
     link: string;
   }) => http.post(`${p}/assignments`, body).then(r => r.data),
   createAssignmentFile: (form: FormData) =>

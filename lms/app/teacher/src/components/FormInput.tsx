@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { theme } from '../ui/theme';
-import { androidInputStyle, platformWeight } from '../ui/typography';
+import { View, Text, TextInput, StyleSheet, useColorScheme } from 'react-native';
+import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
+import { platformWeight } from '../ui/typography';
 
 export function FormInput({
   label,
@@ -10,25 +10,32 @@ export function FormInput({
   placeholder,
   keyboardType,
   secureTextEntry,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
-  keyboardType?: 'default' | 'numeric' | 'email-address';
+  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
   secureTextEntry?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
+  const colors = useThemeColors();
+  const isDark = useColorScheme() === 'dark';
+
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={textInputStyle(colors)}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        placeholderTextColor={colors.muted}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
-        placeholderTextColor={theme.muted}
+        autoCapitalize={autoCapitalize}
+        keyboardAppearance={isDark ? 'dark' : 'light'}
       />
     </View>
   );
@@ -36,15 +43,5 @@ export function FormInput({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, ...platformWeight('600'), color: theme.text, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-    ...androidInputStyle,
-  },
+  label: { fontSize: 13, ...platformWeight('600'), marginBottom: 6 },
 });

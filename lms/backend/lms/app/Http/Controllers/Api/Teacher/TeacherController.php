@@ -19,6 +19,29 @@ class TeacherController extends Controller
         return DB::table('course_assign')->where('email', $email)->pluck('course');
     }
 
+    private function ensureTeacherAttendanceSchema(): void
+    {
+        static $done = false;
+        if ($done) {
+            return;
+        }
+        $done = true;
+
+        DB::statement(
+            "CREATE TABLE IF NOT EXISTS `teacher_attendance` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `tid` int(11) NOT NULL,
+              `date` date NOT NULL,
+              `entry_time` datetime DEFAULT NULL,
+              `exit_time` datetime DEFAULT NULL,
+              `course` varchar(255) DEFAULT NULL,
+              `status` varchar(50) DEFAULT '',
+              PRIMARY KEY (`id`),
+              KEY `idx_tid_date` (`tid`, `date`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+        );
+    }
+
     public function assignments(Request $request): JsonResponse
     {
         $courses = $this->assignedCourses($this->email($request));
@@ -95,6 +118,49 @@ class TeacherController extends Controller
             'today_total_students' => $todayTotalStudents,
             'today_present_students' => $todayPresentStudents,
             'today_absent_students' => $todayAbsentStudents,
+        ]);
+    }
+
+    public function myAttendance(Request $request): JsonResponse
+    {
+        $email = $this->email($request);
+        $teacher = DB::table('teacher')->where('email', $email)->first();
+
+        if (! $teacher) {
+            return response()->json(['status' => 'error', 'message' => 'Teacher not found'], 404);
+        }
+
+        $this->ensureTeacherAttendanceSchema();
+        $tid = (int) $teacher->tid;
+
+        $summary = DB::table('teacher_attendance')
+            ->where('tid', $tid)
+            ->selectRaw('tid, course')
+            ->selectRaw('COUNT(DISTINCT date) AS total_days')
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) AS present_days")
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'absent' THEN 1 ELSE 0 END) AS absent_days")
+            ->selectRaw(
+                "(SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT date), 0)) * 100 AS attendance_percentage"
+            )
+            ->groupBy('tid', 'course')
+            ->orderBy('course')
+            ->get();
+
+        $log = DB::table('teacher_attendance')
+            ->where('tid', $tid)
+            ->select('date', 'course', 'entry_time', 'exit_time', 'status')
+            ->orderByDesc('date')
+            ->orderByDesc('entry_time')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'teacher' => [
+                'tid' => $teacher->tid,
+                'name' => $teacher->name,
+            ],
+            'summary' => $summary,
+            'log' => $log,
         ]);
     }
 

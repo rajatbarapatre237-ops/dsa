@@ -16,6 +16,7 @@ $email = $_SESSION['email'];
 
 // $class = $fun->fetchAllCourses();
 $courseee = $fun->fetchcoursedistinct($email);
+$sessions = $fun->fetchAllSessions();
 
 // Fetch the course for the logged-in user
 $course = null;
@@ -25,15 +26,18 @@ $course = null;
 //     }
 // }
 
+if(isset($_POST['submit']))
+{
+    $course  = trim($_POST['courseee']);
+    $batch   = trim($_POST['batch']);
+    $session = trim($_POST['session']);
 
-if(isset($_POST['submit']) ){
- 
-  
-  $course = trim($_POST['courseee']);
-  $fetch = $fun->fetchStudent($course);
- 
-
-  }
+    $fetch = $fun->fetchStudentFilter(
+        $course,
+        $batch,
+        $session
+    );
+}
 
 ?>
 
@@ -97,24 +101,79 @@ if(isset($_POST['submit']) ){
               <h5 class="card-title">Students table</h5>
              
               <form action="View_students.php" method="post">
-              <div class="d-flex ">
-                <select name="courseee" id="course" class="form-select w-25">
-                            <option selected>select Course </option>
-                            <?php 
-                            if (mysqli_num_rows($courseee) > 0) {
-                                while ($teach = mysqli_fetch_assoc($courseee)) {
-                                    
-                                ?>
-                                <option value="<?php echo $teach['course'];?>" class=""><?php echo $teach['course'];?></option>
-                            <?php 
-                                }
-                                }
-                             
-                            ?>
-                            
-                        </select>
-                        <button type="submit" name="submit" class="btn btn-primary mx-5">Submit</button>
-                      </div>
+                <div class="row">
+                
+                <div class="col-md-3">
+                <select name="courseee"
+                        id="courses"
+                        class="form-select"
+                        required>
+                
+                <option value="">
+                Select Course
+                </option>
+                
+                <?php
+                mysqli_data_seek($courseee,0);
+                
+                while($teach=mysqli_fetch_assoc($courseee))
+                {
+                ?>
+                <option value="<?php echo $teach['course']; ?>">
+                    <?php echo $teach['course']; ?>
+                </option>
+                <?php
+                }
+                ?>
+                
+                </select>
+                </div>
+                
+                <div class="col-md-3">
+                <select name="batch"
+                        id="batch"
+                        class="form-select"
+                        required>
+                
+                <option value="">
+                Select Batch
+                </option>
+                
+                </select>
+                </div>
+                
+                <div class="col-md-3">
+                <select name="session"
+                        class="form-select"
+                        required>
+                
+                <option value="">
+                Select Session
+                </option>
+                
+                <?php
+                while($ses=mysqli_fetch_assoc($sessions))
+                {
+                ?>
+                <option value="<?php echo $ses['session_name']; ?>">
+                    <?php echo $ses['session_name']; ?>
+                </option>
+                <?php
+                }
+                ?>
+                
+                </select>
+                </div>
+                
+                <div class="col-md-3">
+                <button type="submit"
+                        name="submit"
+                        class="btn btn-primary w-100">
+                    Search
+                </button>
+                </div>
+                
+                </div>
               </form>
               <!-- Table with stripped rows -->
               <div class="table-responsive mt-5" >
@@ -217,7 +276,37 @@ if(isset($_POST['submit']) ){
   <?php
   include "include/footer.php";
   ?>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
+<script>
+$(document).ready(function(){
+
+    $('#courses').on('change', function(){
+
+        var course = $(this).val();
+
+        $.ajax({
+            url:'ajax_get_batches.php',
+            type:'POST',
+            data:{course:course},
+
+            success:function(response)
+            {
+                console.log(response);
+                $('#batch').html(response);
+            },
+
+            error:function(xhr)
+            {
+                console.log(xhr.responseText);
+            }
+        });
+
+    });
+
+});
+
+</script>
 </body>
 
 </html>

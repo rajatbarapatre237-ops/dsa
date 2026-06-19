@@ -60,3 +60,40 @@ Stack trace:
 #0 /home/dsaedu/public_html/teacher/index.php(32): mysqli->query()
 #1 {main}
   thrown in /home/dsaedu/public_html/teacher/index.php on line 32
+[15-Jun-2026 04:28:05 UTC] PHP Warning:  include(include/auth_session.php): Failed to open stream: No such file or directory in /home9/dsaedu/public_html/teacher/delete.php on line 4
+[15-Jun-2026 04:28:05 UTC] PHP Warning:  include(): Failed opening 'include/auth_session.php' for inclusion (include_path='.:/opt/alt/php84/usr/share/pear:/opt/alt/php84/usr/share/php:/usr/share/pear:/usr/share/php') in /home9/dsaedu/public_html/teacher/delete.php on line 4
+[15-Jun-2026 04:28:05 UTC] PHP Warning:  unlink(documents/Test_06-06-2026.png): No such file or directory in /home9/dsaedu/public_html/teacher/connect/fun.php on line 940
+[15-Jun-2026 04:28:07 UTC] PHP Warning:  include(include/auth_session.php): Failed to open stream: No such file or directory in /home9/dsaedu/public_html/teacher/delete.php on line 4
+[15-Jun-2026 04:28:07 UTC] PHP Warning:  include(): Failed opening 'include/auth_session.php' for inclusion (include_path='.:/opt/alt/php84/usr/share/pear:/opt/alt/php84/usr/share/php:/usr/share/pear:/usr/share/php') in /home9/dsaedu/public_html/teacher/delete.php on line 4
+[15-Jun-2026 10:24:35 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method fun::fetchAllSessions() in /home9/dsaedu/public_html/teacher/View_students.php:19
+Stack trace:
+#0 {main}
+  thrown in /home9/dsaedu/public_html/teacher/View_students.php on line 19
+[15-Jun-2026 10:24:52 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:24:59 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:25:48 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:26:03 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:26:07 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:26:11 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:26:41 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:26:49 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:27:10 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:34:41 UTC] PHP Fatal error:  Cannot redeclare fun::fetchAllSessions() in /home9/dsaedu/public_html/teacher/connect/fun.php on line 1206
+[15-Jun-2026 10:35:51 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:36:09 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:36:15 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:36:24 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:37:38 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:40:37 UTC] PHP Deprecated:  fun::updateWorkingStatus(): Optional parameter $status declared before required parameter $id is implicitly treated as a required parameter in /home9/dsaedu/public_html/teacher/connect/fun.php on line 455
+[15-Jun-2026 10:40:37 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 10:41:45 UTC] PHP Deprecated:  fun::updateWorkingStatus(): Optional parameter $status declared before required parameter $id is implicitly treated as a required parameter in /home9/dsaedu/public_html/teacher/connect/fun.php on line 455
+[15-Jun-2026 10:41:45 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:22:19 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:22:31 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:23:56 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:24:07 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:25:42 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:26:22 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:30:12 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:31:27 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5
+[15-Jun-2026 11:34:17 UTC] PHP Warning:  Undefined array key "class" in /home9/dsaedu/public_html/teacher/getbatch.php on line 5

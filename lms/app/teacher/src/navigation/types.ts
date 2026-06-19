@@ -5,8 +5,10 @@ export type RootStackParamList = {
 
 export type WorkStackParamList = {
   WorkHub: undefined;
-  AssignmentsList: undefined;
-  AddAssignment: undefined;
+  AssignmentsList: { contentKind?: 'assignment' } | undefined;
+  NotesList: { contentKind: 'note' };
+  AddAssignment: { contentKind?: 'assignment' } | undefined;
+  AddNote: { contentKind: 'note' };
   AssignmentDetail: { id: number };
   AssignmentFile: { id: number };
   ClassTests: undefined;
@@ -30,5 +32,8 @@ export type StudentsStackParamList = {
 export type AttendanceStackParamList = {
   AttendanceHub: undefined;
   ViewAttendance: undefined;
+  StudentAttendanceList: undefined;
+  StudentAttendanceSummary: { id: string; name?: string };
+  MyAttendance: undefined;
   AddAttendance: undefined;
 };

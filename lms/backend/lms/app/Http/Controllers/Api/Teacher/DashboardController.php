@@ -112,4 +112,39 @@ class DashboardController extends Controller
             'recent_attendance' => $attendance,
         ]);
     }
+
+    public function studentAttendanceSummary(Request $request, string $id): JsonResponse
+    {
+        $email = $request->attributes->get('api_user')['email'];
+        $assigned = DB::table('course_assign')->where('email', $email)->pluck('course');
+
+        $student = DB::table('stud_details')
+            ->where('id', $id)
+            ->when($assigned->isNotEmpty(), fn ($q) => $q->whereIn('course_name', $assigned))
+            ->first();
+
+        if (! $student) {
+            return response()->json(['status' => 'error', 'message' => 'Student not found'], 404);
+        }
+
+        $summary = DB::table('attendance')
+            ->where('sid', $id)
+            ->selectRaw('sid, course, batch')
+            ->selectRaw('COUNT(DISTINCT date) AS total_days')
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) AS present_days")
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'absent' THEN 1 ELSE 0 END) AS absent_days")
+            ->selectRaw(
+                "(SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT date), 0)) * 100 AS attendance_percentage"
+            )
+            ->groupBy('sid', 'course', 'batch')
+            ->orderBy('course')
+            ->orderBy('batch')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'student' => $student,
+            'summary' => $summary,
+        ]);
+    }
 }

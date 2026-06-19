@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -13,6 +13,9 @@ import AccountHomeScreen from '../screens/AccountHomeScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import AppIcon from '../components/AppIcon';
 import { PRIMARY } from '../config';
+import { androidTabLabelStyle } from '../ui/typography';
+import { resetStackOnTabPress } from './resetStackOnTabPress';
+import { useTabBarStyle } from './useTabBarStyle';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -67,23 +70,37 @@ function AccountStack() {
 }
 
 export default function MainTabs() {
+  const { tabBarStyle } = useTabBarStyle();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: PRIMARY,
         tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle,
+        tabBarHideOnKeyboard: true,
+        tabBarLabelStyle: androidTabLabelStyle,
+        tabBarIconStyle: Platform.OS === 'android' ? styles.tabBarIconAndroid : undefined,
         tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
       })}>
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Attendance" component={AttendanceStack} />
-      <Tab.Screen name="Marks" component={MarksStack} options={{ title: 'Growth' }} />
-      <Tab.Screen name="Account" component={AccountStack} />
+      <Tab.Screen
+        name="Attendance"
+        component={AttendanceStack}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen
+        name="Marks"
+        component={MarksStack}
+        options={{ title: 'Growth' }}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen name="Account" component={AccountStack} listeners={resetStackOnTabPress()} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: { height: 62, paddingBottom: 8, paddingTop: 6, backgroundColor: '#fff' },
+  tabBarIconAndroid: { marginTop: 2 },
 });

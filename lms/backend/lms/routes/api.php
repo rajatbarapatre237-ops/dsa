@@ -25,6 +25,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
             Route::get('/students', [TeacherDashboardController::class, 'students']);
             Route::get('/students/{id}', [TeacherDashboardController::class, 'showStudent']);
+            Route::get('/students/{id}/attendance-summary', [TeacherDashboardController::class, 'studentAttendanceSummary']);
             Route::get('/assignments', [AssignmentController::class, 'index']);
             Route::get('/assignments/{id}', [AssignmentController::class, 'show']);
             Route::get('/assignments/{id}/file', [AssignmentController::class, 'download']);
@@ -32,7 +33,9 @@ Route::prefix('v1')->group(function () {
             Route::patch('/assignments/{id}/status', [AssignmentController::class, 'updateStatus']);
             Route::delete('/assignments/{id}', [AssignmentController::class, 'destroy']);
             Route::get('/form/all-batches', [AssignmentController::class, 'allBatches']);
+            Route::get('/form/subjects', [AssignmentController::class, 'subjectsForBatch']);
             Route::get('/attendance', [TeacherController::class, 'attendance']);
+            Route::get('/my-attendance', [TeacherController::class, 'myAttendance']);
             Route::get('/salary', [TeacherController::class, 'salary']);
             Route::get('/class-tests', [TeacherController::class, 'classTests']);
             Route::get('/test-results', [TeacherController::class, 'testResults']);
@@ -59,6 +62,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/courses', [StudentController::class, 'courses']);
             Route::get('/attendance', [StudentController::class, 'attendance']);
             Route::get('/assignments', [StudentController::class, 'assignments']);
+            Route::get('/content-subjects', [StudentController::class, 'contentSubjects']);
             Route::get('/assignments/{id}', [StudentController::class, 'showAssignment']);
             Route::get('/assignments/{id}/file', [StudentController::class, 'downloadAssignment']);
             Route::get('/transactions', [StudentController::class, 'transactions']);

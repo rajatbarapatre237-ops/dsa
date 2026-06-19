@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Text, StyleSheet, Pressable, View, Switch, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
@@ -24,21 +24,28 @@ function isActiveStatus(status: unknown) {
 
 export default function AssignmentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
+  const route = useRoute<RouteProp<WorkStackParamList, 'AssignmentsList' | 'NotesList'>>();
+  const contentKind = route.name === 'NotesList' ? 'note' : 'assignment';
+  const isNote = contentKind === 'note';
+
   const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
+
+  const title = isNote ? 'Notes' : 'Assignments';
+  const addRoute = isNote ? 'AddNote' : 'AddAssignment';
 
   const load = useCallback(
     async (options?: { showRefresh?: boolean }) => {
       beginLoad(options);
       try {
-        const res: any = await LmsApi.assignments();
+        const res: any = await LmsApi.assignments({ content_kind: contentKind });
         setItems(res.assignments ?? []);
         markHasData();
       } finally {
         endLoad();
       }
     },
-    [beginLoad, endLoad, markHasData],
+    [beginLoad, contentKind, endLoad, markHasData],
   );
 
   useRefreshOnFocus(() => load());
@@ -55,7 +62,7 @@ export default function AssignmentsScreen() {
   }
 
   function confirmDelete(item: any) {
-    Alert.alert('Delete assignment', `Remove "${item.document_name}"?`, [
+    Alert.alert(`Delete ${isNote ? 'note' : 'assignment'}`, `Remove "${item.document_name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -72,27 +79,30 @@ export default function AssignmentsScreen() {
     ]);
   }
 
-  const activeCount = items.filter(a => isActiveStatus(a.status)).length;
+  const activeCount = useMemo(
+    () => items.filter(a => isActiveStatus(a.status)).length,
+    [items],
+  );
 
   return (
     <ScreenLayout
-      title="Assignments"
-      subtitle="Share files and links with batches"
+      title={title}
+      subtitle={isNote ? 'Class notes by subject' : 'Homework and uploads by subject'}
       onBack={() => navigation.navigate('WorkHub')}
       refreshing={refreshing}
       onRefresh={() => load({ showRefresh: true })}
       rightAction={
-        <Pressable style={styles.addBtn} onPress={() => navigation.navigate('AddAssignment')}>
+        <Pressable style={styles.addBtn} onPress={() => navigation.navigate(addRoute)}>
           <AppIcon name="add" size={22} color="#fff" />
         </Pressable>
       }>
-      <AssignmentsSummaryCard count={activeCount} />
+      <AssignmentsSummaryCard count={activeCount} label={isNote ? 'Active notes' : undefined} />
 
-      <Card title={`All assignments (${items.length})`}>
+      <Card title={`All ${title.toLowerCase()} (${items.length})`}>
         <DataList
           loading={loading}
           items={items}
-          emptyText="No assignments yet"
+          emptyText={isNote ? 'No notes yet' : 'No assignments yet'}
           renderItem={(a: any) => (
             <View style={[styles.item, items.indexOf(a) === items.length - 1 && styles.itemLast]}>
               <AssignmentListItem

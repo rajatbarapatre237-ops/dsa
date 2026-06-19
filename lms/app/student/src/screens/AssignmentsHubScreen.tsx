@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
@@ -9,16 +9,29 @@ import { useStudentContext } from '../hooks/useStudentContext';
 import { useRefreshStudentOnFocus } from '../hooks/useRefreshStudentOnFocus';
 import { AssignmentsStackParamList } from '../navigation/types';
 
+function contentKindOf(item: any) {
+  return item.content_kind === 'note' ? 'note' : 'assignment';
+}
+
 export default function AssignmentsHubScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AssignmentsStackParamList>>();
   const ctx = useStudentContext();
   useRefreshStudentOnFocus();
 
-  const recentAssignments = ctx.assignments.slice(0, 5);
+  const assignments = useMemo(
+    () => ctx.assignments.filter((item: any) => contentKindOf(item) === 'assignment'),
+    [ctx.assignments],
+  );
+  const notes = useMemo(
+    () => ctx.assignments.filter((item: any) => contentKindOf(item) === 'note'),
+    [ctx.assignments],
+  );
+  const recentAssignments = assignments.slice(0, 5);
+  const recentNotes = notes.slice(0, 5);
 
   return (
     <ScreenLayout
-      title="Assignments"
+      title="Work"
       refreshing={ctx.refreshing}
       onRefresh={() => ctx.refresh({ showRefresh: true })}>
       <StudentContextCard
@@ -31,15 +44,18 @@ export default function AssignmentsHubScreen() {
         monthRecords={ctx.monthRecords}
       />
 
-      <AssignmentsSummaryCard count={ctx.assignments.length} />
+      <AssignmentsSummaryCard count={assignments.length} label="Assignments available" />
 
-      <SectionTitle>Explore</SectionTitle>
-      <ExploreAssignmentsTiles onAssignments={() => navigation.navigate('AssignmentsList')} />
+      <SectionTitle>Explore by subject</SectionTitle>
+      <ExploreAssignmentsTiles
+        onAssignments={() => navigation.navigate('ContentSubjects', { contentKind: 'assignment' })}
+        onNotes={() => navigation.navigate('ContentSubjects', { contentKind: 'note' })}
+      />
 
       <SectionHeader
         title="Recent assignments"
-        actionLabel="See all"
-        onAction={() => navigation.navigate('AssignmentsList')}
+        actionLabel="By subject"
+        onAction={() => navigation.navigate('ContentSubjects', { contentKind: 'assignment' })}
       />
       <RecentAssignmentsCard
         assignments={recentAssignments}
@@ -47,7 +63,23 @@ export default function AssignmentsHubScreen() {
           if (item?.id != null) {
             navigation.navigate('AssignmentDetail', { id: Number(item.id) });
           } else {
-            navigation.navigate('AssignmentsList');
+            navigation.navigate('ContentSubjects', { contentKind: 'assignment' });
+          }
+        }}
+      />
+
+      <SectionHeader
+        title="Recent notes"
+        actionLabel="By subject"
+        onAction={() => navigation.navigate('ContentSubjects', { contentKind: 'note' })}
+      />
+      <RecentAssignmentsCard
+        assignments={recentNotes}
+        onItemPress={item => {
+          if (item?.id != null) {
+            navigation.navigate('AssignmentDetail', { id: Number(item.id) });
+          } else {
+            navigation.navigate('ContentSubjects', { contentKind: 'note' });
           }
         }}
       />

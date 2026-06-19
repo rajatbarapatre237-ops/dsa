@@ -5,7 +5,13 @@ import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 import { platformWeight } from '../ui/typography';
 
-export function AssignmentsSummaryCard({ count }: { count: number }) {
+export function AssignmentsSummaryCard({
+  count,
+  label,
+}: {
+  count: number;
+  label?: string;
+}) {
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryIcon}>
@@ -14,7 +20,7 @@ export function AssignmentsSummaryCard({ count }: { count: number }) {
       <View style={styles.summaryBody}>
         <Text style={[styles.summaryValue, platformWeight('800')]}>{count}</Text>
         <Text style={styles.summaryLabel}>
-          Assignment{count === 1 ? '' : 's'} for your batches
+          {label ?? `Assignment${count === 1 ? '' : 's'} for your batches`}
         </Text>
       </View>
     </View>
@@ -30,8 +36,10 @@ export function AssignmentListItem({
 }) {
   const title = String(item.document_name ?? 'Assignment').trim() || 'Assignment';
   const batch = String(item.batch_name ?? item.batch ?? '').trim();
+  const subject = String(item.subject_name ?? '').trim();
   const isLink = String(item.type ?? '').toLowerCase() === 'link';
   const isActive = item.status === 1 || item.status === '1' || item.status === true;
+  const metaParts = [subject, batch, isLink ? 'Link' : 'File', isActive ? 'Active' : 'Hidden'].filter(Boolean);
 
   return (
     <Pressable style={({ pressed }) => [styles.listItem, pressed && styles.pressed]} onPress={onPress}>
@@ -48,7 +56,7 @@ export function AssignmentListItem({
           {title}
         </Text>
         <Text style={styles.listMeta} numberOfLines={1}>
-          {[batch, isLink ? 'Link' : 'File', isActive ? 'Active' : 'Hidden'].filter(Boolean).join(' · ')}
+          {metaParts.join(' · ')}
         </Text>
       </View>
       <View style={[styles.typeBadge, isLink ? styles.typeLink : styles.typeFile]}>

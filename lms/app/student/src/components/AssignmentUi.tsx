@@ -4,7 +4,13 @@ import AppIcon from './AppIcon';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 
-export function AssignmentsSummaryCard({ count }: { count: number }) {
+export function AssignmentsSummaryCard({
+  count,
+  label,
+}: {
+  count: number;
+  label?: string;
+}) {
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryIcon}>
@@ -13,7 +19,7 @@ export function AssignmentsSummaryCard({ count }: { count: number }) {
       <View style={styles.summaryBody}>
         <Text style={styles.summaryValue}>{count}</Text>
         <Text style={styles.summaryLabel}>
-          Active assignment{count === 1 ? '' : 's'} for your batch
+          {label ?? `Active assignment${count === 1 ? '' : 's'} for your batch`}
         </Text>
       </View>
     </View>
@@ -29,6 +35,7 @@ export function AssignmentListItem({
 }) {
   const title = String(item.document_name ?? 'Assignment').trim() || 'Assignment';
   const batch = String(item.batch_name ?? item.batch ?? '').trim();
+  const subject = String(item.subject_name ?? '').trim();
   const isLink = String(item.type ?? '').toLowerCase() === 'link';
 
   return (
@@ -46,7 +53,7 @@ export function AssignmentListItem({
           {title}
         </Text>
         <Text style={styles.listMeta} numberOfLines={1}>
-          {[batch, isLink ? 'Link' : 'File'].filter(Boolean).join(' · ')}
+          {[subject, batch, isLink ? 'Link' : 'File'].filter(Boolean).join(' · ')}
         </Text>
       </View>
       <View style={[styles.typeBadge, isLink ? styles.typeLink : styles.typeFile]}>

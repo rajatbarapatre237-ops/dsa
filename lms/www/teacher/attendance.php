@@ -1,7 +1,6 @@
 <?php
 include "connect/db.php";
 include "connect/fun.php";
-error_reporting(0);
 session_start();
 if (!isset($_SESSION['email'])) {
   header("Location: index.php");
@@ -10,15 +9,19 @@ if (!isset($_SESSION['email'])) {
 $email = $_SESSION['email'];
 $connect = new connect();
 $fun = new fun($connect->dbconnect());
+$db = $connect->dbconnect();
 
 $courseRows = [];
-$coursesRes = $fun->fetchassigncourse($email);
-while ($row = mysqli_fetch_assoc($coursesRes)) {
-  $courseRows[] = $row;
+$coursesRes = $fun->fetchTeacherCourses($email);
+if ($coursesRes) {
+  while ($row = mysqli_fetch_assoc($coursesRes)) {
+    $courseRows[] = $row;
+  }
 }
 $sessions = $fun->getAcademicSessions();
 $stud = null;
 $batches = null;
+$message = isset($_GET['message']) ? trim($_GET['message']) : '';
 $selectedSession = $_POST['session'] ?? '';
 $selectedCourse = $_POST['course'] ?? '';
 $selectedBatch = $_POST['batch'] ?? '';
@@ -27,76 +30,45 @@ if (isset($_POST['course']) && $selectedCourse !== '') {
   $batches = $fun->fetchbatchwithcourse($selectedCourse);
 }
 
-if (isset($_POST['submit']) && $selectedSession !== '' && $selectedCourse !== '') {
+if (isset($_POST['load_students']) && $selectedCourse !== '') {
   $stud = $fun->fetchStudentsFiltered($selectedCourse, $selectedSession, $selectedBatch);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['st_status']) && is_array($_POST['st_status'])) {
+  $attendance_date = mysqli_real_escape_string($db, $_POST['attendance_date'] ?? date('Y-m-d'));
+  $cou = mysqli_real_escape_string($db, $_POST['course'] ?? '');
+  $success = true;
 
-// Process the attendance data when the form is submitted
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  // Get the attendance date from the form input
-  $attendance_date = $_POST['attendance_date'];
-  $batch = $_POST['batch'];
-  $cou = $_POST['course'];
+  foreach ($_POST['st_status'] as $student_id => $status) {
+    $student_id = mysqli_real_escape_string($db, (string) $student_id);
+    $status = mysqli_real_escape_string($db, (string) $status);
+    $rowBatch = mysqli_real_escape_string($db, (string) ($_POST['row_batch'][$student_id] ?? $selectedBatch));
+    $rowCourse = mysqli_real_escape_string($db, (string) ($_POST['row_course'][$student_id] ?? $cou));
 
-  // Loop through each student's status and update the database
-  if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the attendance date from the form input
-    $attendance_date = $_POST['attendance_date'];
-    $batch = $_POST['batch'];
-    $cou = $_POST['course'];
-  
-    // Loop through each student's status and update the database
-    if (isset($_POST['st_status']) && is_array($_POST['st_status'])) {
-        $success = true; // Flag to track the success of the queries
-        foreach ($_POST['st_status'] as $student_id => $status) {
-            // Escape data to prevent SQL injection
-            $attendance_date = mysqli_real_escape_string($connect->dbconnect(), $attendance_date);
-            $student_id = mysqli_real_escape_string($connect->dbconnect(), $student_id);
-            $status = mysqli_real_escape_string($connect->dbconnect(), $status);
-            $batch = mysqli_real_escape_string($connect->dbconnect(), $batch);
-            $cou = mysqli_real_escape_string($connect->dbconnect(), $cou);
-  
-            // Check if attendance record already exists
-            $check_query = "SELECT 1 FROM attendance WHERE sid = '$student_id' AND date = '$attendance_date' LIMIT 1";
-            $result = mysqli_query($connect->dbconnect(), $check_query);
-  
-            if (mysqli_num_rows($result) > 0) {
-                // If record exists, update the attendance
-                $update_query = "UPDATE attendance 
-                                 SET status = '$status' 
-                                 WHERE sid = '$student_id' AND date = '$attendance_date'";
-  
-                if (!mysqli_query($connect->dbconnect(), $update_query)) {
-                    $success = false;
-                    echo "Error updating attendance for student ID: $student_id<br>" . mysqli_error($connect->dbconnect()) . "<br>";
-                }
-            } else {
-                // If no record exists, insert a new record
-                $insert_query = "INSERT INTO attendance (sid, date, course, batch, status) 
-                                 VALUES ('$student_id', '$attendance_date', '$cou', '$batch', '$status')";
-  
-                if (!mysqli_query($connect->dbconnect(), $insert_query)) {
-                    $success = false;
-                    echo "Error recording attendance for student ID: $student_id<br>" . mysqli_error($connect->dbconnect()) . "<br>";
-                }
-            }
-        }
-  
-        // If all queries were successful, redirect to another page (e.g., attendance page)
-        if ($success) {
-            header("Location: attendance.php?message=Attendance%20recorded%20successfully");
-            exit();
-        }
+    $check_query = "SELECT 1 FROM attendance WHERE sid = '$student_id' AND date = '$attendance_date' LIMIT 1";
+    $result = mysqli_query($db, $check_query);
+
+    if ($result && mysqli_num_rows($result) > 0) {
+      $update_query = "UPDATE attendance SET status = '$status', course = '$rowCourse', batch = '$rowBatch'
+                       WHERE sid = '$student_id' AND date = '$attendance_date'";
+      if (!mysqli_query($db, $update_query)) {
+        $success = false;
+      }
     } else {
-        echo "No attendance data was submitted.";
+      $insert_query = "INSERT INTO attendance (sid, date, course, batch, status)
+                       VALUES ('$student_id', '$attendance_date', '$rowCourse', '$rowBatch', '$status')";
+      if (!mysqli_query($db, $insert_query)) {
+        $success = false;
+      }
     }
   }
-  
+
+  if ($success) {
+    header('Location: attendance.php?message=' . urlencode('Attendance recorded successfully'));
+    exit();
+  }
+  $message = 'Some attendance rows could not be saved.';
 }
-
-
-
 ?>
 
 <!DOCTYPE html>
@@ -127,7 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </ol>
       </nav>
     </div>
-   
+    <?php if ($message !== '') { ?>
+      <p class="text-center text-success"><?php echo htmlspecialchars($message); ?></p>
+    <?php } ?>
     <section class="section">
       <div class="row">
         <div class="col-lg-12">
@@ -139,8 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="row g-3">
                   <div class="col-sm-3">
                     <label class="form-label">Session</label>
-                    <select name="session" id="session" class="form-select" required>
-                      <option value="">Select Session</option>
+                    <select name="session" id="session" class="form-select">
+                      <option value="">All sessions</option>
                       <?php if ($sessions) { while ($sess = mysqli_fetch_assoc($sessions)) { ?>
                         <option value="<?= htmlspecialchars($sess['session_name']) ?>" <?= ($selectedSession === $sess['session_name']) ? 'selected' : '' ?>>
                           <?= htmlspecialchars($sess['session_name']) ?>
@@ -163,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Batch <small class="text-muted">(optional)</small></label>
                     <select name="batch" id="batch" class="form-select">
                       <option value="">All batches</option>
-                      <?php if ($batches) { while ($bat = mysqli_fetch_assoc($batches)): ?>
+                      <?php if ($batches) { while ($bat = mysqli_fetch_assoc($batches)) { ?>
                         <option value="<?= htmlspecialchars($bat['name']) ?>" <?= ($selectedBatch === $bat['name']) ? 'selected' : '' ?>>
                           <?= htmlspecialchars($bat['name']) ?>
                         </option>
@@ -171,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </select>
                   </div>
                   <div class="col-sm-3 d-flex align-items-end">
-                    <input type="submit" class="btn btn-primary w-100" name="submit" value="Load students">
+                    <input type="submit" class="btn btn-primary w-100" name="load_students" value="Load students">
                   </div>
                 </div>
               </form>
@@ -208,10 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <tr>
                         <th scope="row"><?php echo $sr ?></th>
                         <td><?php echo $res['id'] ?></td>
-                        <td><?php echo $res['course_name'] ?>
-                      <input type="hidden" value="<?php echo $res['course_name'] ?>" name="course"></td>
-                        <td><?php echo $res['batch'] ?>
-                        <input type="hidden" value="<?php echo $res['batch'] ?>" name="batch"></td></td>
+                        <td><?php echo htmlspecialchars($res['course_name']) ?>
+                      <input type="hidden" name="row_course[<?php echo (int) $res['id']; ?>]" value="<?php echo htmlspecialchars($res['course_name']) ?>"></td>
+                        <td><?php echo htmlspecialchars($res['batch']) ?>
+                        <input type="hidden" name="row_batch[<?php echo (int) $res['id']; ?>]" value="<?php echo htmlspecialchars($res['batch']) ?>"></td>
                         <td>
                             <!-- Attendance Date -->
                             
@@ -230,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ?>
         </tbody>
     </table>
-   <div class="text-center"> <button type="submit" class="btn btn-primary">Submit Attendance</button></div>
+   <div class="text-center"> <button type="submit" name="save_attendance" class="btn btn-primary">Submit Attendance</button></div>
 </form>
 
 

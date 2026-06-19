@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AppIcon from './AppIcon';
 import { PRIMARY } from '../config';
-import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 
 type Option = { label: string; value: string };
 
@@ -35,6 +35,7 @@ export function FormPicker({
   disabled?: boolean;
   compact?: boolean;
 }) {
+  const colors = useThemeColors();
   const fieldRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<LayoutRectangle | null>(null);
@@ -83,13 +84,16 @@ export function FormPicker({
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
-      <Text style={[styles.label, compact && styles.labelCompact]}>{label}</Text>
+      <Text style={[styles.label, compact && styles.labelCompact, { color: colors.text }]}>{label}</Text>
       <View ref={fieldRef} collapsable={false}>
         <Pressable
           style={[
             styles.field,
             compact && styles.fieldCompact,
-            open && styles.fieldOpen,
+            {
+              borderColor: open ? PRIMARY : colors.inputBorder,
+              backgroundColor: open ? colors.fieldOpenBg : colors.inputBg,
+            },
             disabled && styles.disabled,
           ]}
           onPress={openDropdown}
@@ -98,6 +102,7 @@ export function FormPicker({
             style={[
               selected ? styles.value : styles.placeholder,
               compact && styles.valueCompact,
+              { color: selected ? colors.text : colors.muted },
             ]}
             numberOfLines={1}>
             {selected?.label ?? placeholder}
@@ -105,7 +110,7 @@ export function FormPicker({
           <AppIcon
             name={open ? 'chevron-up' : 'chevron-down'}
             size={compact ? 14 : 16}
-            color={open ? PRIMARY : theme.muted}
+            color={open ? PRIMARY : colors.muted}
           />
         </Pressable>
       </View>
@@ -120,6 +125,8 @@ export function FormPicker({
                 {
                   left: anchor.x,
                   width: anchor.width,
+                  backgroundColor: colors.dropdownBg,
+                  borderColor: colors.border,
                   ...dropdownStyle,
                 },
               ]}>
@@ -132,7 +139,11 @@ export function FormPicker({
                   return (
                     <Pressable
                       key={`${item.value}-${index}`}
-                      style={[styles.option, isSelected && styles.optionSelected]}
+                      style={[
+                        styles.option,
+                        { borderBottomColor: colors.border },
+                        isSelected && { backgroundColor: colors.optionSelectedBg },
+                      ]}
                       onPress={() => {
                         onChange(item.value);
                         close();
@@ -141,6 +152,7 @@ export function FormPicker({
                         style={[
                           styles.optionText,
                           compact && styles.optionTextCompact,
+                          { color: isSelected ? PRIMARY : colors.text },
                           isSelected && styles.optionActive,
                         ]}
                         numberOfLines={2}>
@@ -164,17 +176,15 @@ export function FormPicker({
 const styles = StyleSheet.create({
   wrap: { marginBottom: 14, zIndex: 1 },
   wrapCompact: { marginBottom: 10 },
-  label: { fontSize: 13, fontWeight: '600', color: theme.text, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   labelCompact: { fontSize: 12, marginBottom: 4 },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     gap: 8,
   },
   fieldCompact: {
@@ -182,14 +192,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
-  fieldOpen: {
-    borderColor: PRIMARY,
-    backgroundColor: '#f8fbff',
-  },
   disabled: { opacity: 0.5 },
-  value: { flex: 1, fontSize: 16, color: theme.text },
+  value: { flex: 1, fontSize: 16 },
   valueCompact: { fontSize: 14 },
-  placeholder: { flex: 1, fontSize: 16, color: theme.muted },
+  placeholder: { flex: 1, fontSize: 16 },
   modalRoot: { flex: 1 },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -197,10 +203,8 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    backgroundColor: '#fff',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
@@ -215,13 +219,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#f1f5f9',
     gap: 10,
   },
-  optionSelected: {
-    backgroundColor: '#f0f7ff',
-  },
-  optionText: { flex: 1, fontSize: 15, color: theme.text },
+  optionText: { flex: 1, fontSize: 15 },
   optionTextCompact: { fontSize: 14 },
-  optionActive: { color: PRIMARY, fontWeight: '700' },
+  optionActive: { fontWeight: '700' },
 });

@@ -22,10 +22,17 @@ export function ExploreAcademicsTiles({
   );
 }
 
-export function ExploreAssignmentsTiles({ onAssignments }: { onAssignments: () => void }) {
+export function ExploreAssignmentsTiles({
+  onAssignments,
+  onNotes,
+}: {
+  onAssignments: () => void;
+  onNotes: () => void;
+}) {
   return (
-    <View style={styles.singleRow}>
-      <HubTile icon="file-document-outline" title="All assignments" onPress={onAssignments} />
+    <View style={styles.dualRow}>
+      <HubTile icon="file-document-outline" title="Assignments" onPress={onAssignments} />
+      <HubTile icon="notebook-outline" title="Notes" onPress={onNotes} />
     </View>
   );
 }
@@ -208,6 +215,7 @@ export function recordsForMonth(records: any[], month: string) {
 
 const styles = StyleSheet.create({
   tripleRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  dualRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   singleRow: { marginBottom: 14 },
   hubTile: {
     flex: 1,

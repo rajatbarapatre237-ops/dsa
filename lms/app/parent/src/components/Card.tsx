@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 import { PRIMARY } from '../config';
 import AppIcon from './AppIcon';
 
@@ -11,9 +11,10 @@ type Props = {
 };
 
 export function Card({ title, children, onPress }: Props) {
+  const colors = useThemeColors();
   const inner = (
-    <View style={styles.card}>
-      {title ? <Text style={styles.title}>{title}</Text> : null}
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {title ? <Text style={[styles.title, { color: colors.text }]}>{title}</Text> : null}
       {children}
     </View>
   );
@@ -32,16 +33,17 @@ export function MenuTile({
   subtitle?: string;
   onPress: () => void;
 }) {
+  const colors = useThemeColors();
   return (
-    <Pressable style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={onPress}>
-      <View style={styles.tileIconWrap}>
+    <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: colors.card, borderColor: colors.border }, pressed && styles.pressed]} onPress={onPress}>
+      <View style={[styles.tileIconWrap, { backgroundColor: colors.primarySoft }]}>
         <View style={styles.tileDot} />
       </View>
       <View style={styles.tileBody}>
-        <Text style={styles.tileTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.tileSub}>{subtitle}</Text> : null}
+        <Text style={[styles.tileTitle, { color: colors.text }]}>{title}</Text>
+        {subtitle ? <Text style={[styles.tileSub, { color: colors.muted }]}>{subtitle}</Text> : null}
       </View>
-      <AppIcon name="chevron-forward" size={20} color={theme.muted} />
+      <AppIcon name="chevron-forward" size={20} color={colors.muted} />
     </Pressable>
   );
 }
@@ -52,7 +54,7 @@ export function ActionCard({
   title,
   subtitle,
   onPress,
-  accent = theme.primarySoft,
+  accent = '#e8f2fc',
 }: {
   iconName: string;
   iconFamily?: 'ionicons' | 'material';
@@ -61,18 +63,19 @@ export function ActionCard({
   onPress: () => void;
   accent?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <Pressable
-      style={({ pressed }) => [styles.actionCard, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }, pressed && styles.pressed]}
       onPress={onPress}>
       <View style={[styles.actionIconWrap, { backgroundColor: accent }]}>
         <AppIcon name={iconName} family={iconFamily} size={24} color={PRIMARY} />
       </View>
       <View style={styles.actionBody}>
-        <Text style={styles.actionTitle}>{title}</Text>
-        <Text style={styles.actionSub}>{subtitle}</Text>
+        <Text style={[styles.actionTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.actionSub, { color: colors.muted }]}>{subtitle}</Text>
       </View>
-      <View style={styles.actionArrow}>
+      <View style={[styles.actionArrow, { backgroundColor: colors.primarySoft }]}>
         <AppIcon name="chevron-forward" size={18} color={PRIMARY} />
       </View>
     </Pressable>
@@ -81,35 +84,30 @@ export function ActionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.card,
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: theme.border,
-    shadowColor: theme.shadow,
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 12,
     elevation: 2,
   },
-  title: { fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 12 },
+  title: { fontSize: 16, fontWeight: '800', marginBottom: 12 },
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.card,
     borderRadius: 16,
     marginBottom: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: theme.border,
     gap: 12,
   },
   tileIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -120,18 +118,16 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY,
   },
   tileBody: { flex: 1 },
-  tileTitle: { fontSize: 15, fontWeight: '700', color: theme.text },
-  tileSub: { fontSize: 12, color: theme.muted, marginTop: 3, lineHeight: 17 },
+  tileTitle: { fontSize: 15, fontWeight: '700' },
+  tileSub: { fontSize: 12, marginTop: 3, lineHeight: 17 },
   actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.card,
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.border,
-    shadowColor: theme.shadow,
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
     shadowRadius: 14,
@@ -147,13 +143,12 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   actionBody: { flex: 1 },
-  actionTitle: { fontSize: 16, fontWeight: '800', color: theme.text },
-  actionSub: { fontSize: 13, color: theme.muted, marginTop: 4, lineHeight: 18 },
+  actionTitle: { fontSize: 16, fontWeight: '800' },
+  actionSub: { fontSize: 13, marginTop: 4, lineHeight: 18 },
   actionArrow: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
+use App\Support\AssignmentContent;
 use App\Support\AssignmentFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,22 +62,66 @@ class StudentController extends Controller
         $id = $this->studentId($request);
         $profile = DB::table('stud_details')->where('id', $id)->first();
         $batch = $profile->batch ?? '';
+        $kind = $request->query('content_kind');
+        $subjectId = $request->query('subject_id');
 
         $rows = DB::table('assignement')
             ->where('batch_name', $batch)
             ->where('status', 1)
+            ->when(in_array($kind, ['assignment', 'note'], true), fn ($q) => $q->where('content_kind', $kind))
+            ->when($subjectId, fn ($q) => $q->where('subject_id', (int) $subjectId))
             ->orderByDesc('id')
             ->get()
-            ->map(function ($row) {
-                $data = (array) $row;
-                if ($row->type === 'link') {
-                    $data['link_url'] = $row->document;
-                }
-
-                return $data;
-            });
+            ->map(fn ($row) => AssignmentContent::formatRow($row));
 
         return response()->json(['status' => 'success', 'assignments' => $rows]);
+    }
+
+    public function contentSubjects(Request $request): JsonResponse
+    {
+        $id = $this->studentId($request);
+        $profile = DB::table('stud_details')->where('id', $id)->first();
+        $batch = $profile->batch ?? '';
+        $kind = $request->query('content_kind', 'assignment');
+        if (! in_array($kind, ['assignment', 'note'], true)) {
+            $kind = 'assignment';
+        }
+
+        $courseSubjects = AssignmentContent::subjectsForCourse($profile->course_name ?? null);
+        $counts = DB::table('assignement')
+            ->where('batch_name', $batch)
+            ->where('status', 1)
+            ->where('content_kind', $kind)
+            ->selectRaw('subject_id, subject_name, COUNT(*) as item_count')
+            ->groupBy('subject_id', 'subject_name')
+            ->get()
+            ->keyBy(fn ($row) => (string) ($row->subject_id ?: $row->subject_name ?: 'general'));
+
+        $subjects = $courseSubjects->map(function ($subject) use ($counts) {
+            $key = (string) $subject->id;
+            $countRow = $counts->get($key);
+
+            return [
+                'id' => (int) $subject->id,
+                'subject_name' => $subject->subject_name,
+                'item_count' => (int) ($countRow->item_count ?? 0),
+            ];
+        });
+
+        $uncategorized = $counts->get('general') ?? $counts->get('');
+        if ($uncategorized && (int) $uncategorized->item_count > 0) {
+            $subjects->push([
+                'id' => null,
+                'subject_name' => 'General',
+                'item_count' => (int) $uncategorized->item_count,
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'content_kind' => $kind,
+            'subjects' => $subjects->values(),
+        ]);
     }
 
     public function showAssignment(Request $request, int $id): JsonResponse
@@ -95,12 +140,7 @@ class StudentController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
         }
 
-        $data = (array) $row;
-        if ($row->type === 'link') {
-            $data['link_url'] = $row->document;
-        }
-
-        return response()->json(['status' => 'success', 'assignment' => $data]);
+        return response()->json(['status' => 'success', 'assignment' => AssignmentContent::formatRow($row)]);
     }
 
     public function downloadAssignment(Request $request, int $id): \Symfony\Component\HttpFoundation\BinaryFileResponse|JsonResponse

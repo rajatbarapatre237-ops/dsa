@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  useColorScheme,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthApi } from '../api/auth';
 import { loginSession } from '../auth/authSession';
@@ -19,12 +22,15 @@ import {
   LOGIN_FIELDS,
   PRIMARY,
 } from '../config';
-import { theme } from '../ui/theme';
+import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
+import { platformWeight } from '../ui/typography';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen(_props: Props) {
+  const colors = useThemeColors();
+  const isDark = useColorScheme() === 'dark';
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,54 +60,73 @@ export default function LoginScreen(_props: Props) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.wrap}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>{APP_TITLE}</Text>
-        <Text style={styles.sub}>{APP_SUBTITLE}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.label}>{LOGIN_FIELDS.idLabel}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={LOGIN_FIELDS.idPlaceholder}
-          value={id}
-          onChangeText={setId}
-          autoCapitalize={LOGIN_FIELDS.useEmail ? 'none' : 'characters'}
-          keyboardType={LOGIN_FIELDS.useEmail ? 'email-address' : 'default'}
-        />
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable
-          style={[styles.btn, loading && styles.btnDisabled]}
-          onPress={onSubmit}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Sign In</Text>
-          )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <Text style={styles.brand}>{APP_TITLE}</Text>
+            <Text style={[styles.sub, { color: colors.muted }]}>{APP_SUBTITLE}</Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <Text style={[styles.label, { color: colors.text }]}>{LOGIN_FIELDS.idLabel}</Text>
+            <TextInput
+              style={[textInputStyle(colors), styles.inputSpacing]}
+              placeholder={LOGIN_FIELDS.idPlaceholder}
+              placeholderTextColor={colors.muted}
+              value={id}
+              onChangeText={setId}
+              autoCapitalize={LOGIN_FIELDS.useEmail ? 'none' : 'characters'}
+              keyboardType={LOGIN_FIELDS.useEmail ? 'email-address' : 'default'}
+              keyboardAppearance={isDark ? 'dark' : 'light'}
+              autoCorrect={false}
+            />
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <TextInput
+              style={[textInputStyle(colors), styles.inputSpacing]}
+              placeholder="Password"
+              placeholderTextColor={colors.muted}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              keyboardAppearance={isDark ? 'dark' : 'light'}
+            />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Pressable
+              style={[styles.btn, loading && styles.btnDisabled]}
+              onPress={onSubmit}
+              disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Sign In</Text>
+              )}
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: theme.bg, justifyContent: 'center', padding: 24 },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    paddingBottom: 40,
+  },
   header: { alignItems: 'center', marginBottom: 28 },
-  brand: { fontSize: 26, fontWeight: '800', color: PRIMARY },
-  sub: { fontSize: 15, color: theme.muted, marginTop: 6 },
+  brand: { fontSize: 26, ...platformWeight('800'), color: PRIMARY },
+  sub: { fontSize: 15, marginTop: 6 },
   card: {
-    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 22,
     shadowColor: '#000',
@@ -109,16 +134,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  label: { fontSize: 13, fontWeight: '600', color: theme.text, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 14,
-    fontSize: 16,
-  },
+  label: { fontSize: 13, ...platformWeight('600'), marginBottom: 6 },
+  inputSpacing: { marginBottom: 14 },
   btn: {
     backgroundColor: PRIMARY,
     borderRadius: 10,
@@ -127,6 +144,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   btnDisabled: { opacity: 0.7 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  error: { color: theme.danger, marginBottom: 8, fontSize: 14 },
+  btnText: { color: '#fff', ...platformWeight('700'), fontSize: 16 },
+  error: { color: '#dc2626', marginBottom: 8, fontSize: 14 },
 });

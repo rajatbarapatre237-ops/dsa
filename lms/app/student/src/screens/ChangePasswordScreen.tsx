@@ -7,10 +7,11 @@ import { FormInput } from '../components/FormInput';
 import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
-import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 
 export default function ChangePasswordScreen() {
   const navigation = useNavigation<any>();
+  const colors = useThemeColors();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,11 +41,11 @@ export default function ChangePasswordScreen() {
       subtitle="Account security"
       onBack={() => navigation.goBack()}>
       <Card>
-        <View style={styles.hintRow}>
-          <View style={styles.hintIcon}>
+        <View style={[styles.hintRow, { backgroundColor: colors.primarySoft }]}>
+          <View style={[styles.hintIcon, { backgroundColor: colors.surface }]}>
             <AppIcon name="shield-checkmark-outline" size={22} color={PRIMARY} />
           </View>
-          <Text style={styles.hintText}>
+          <Text style={[styles.hintText, { color: colors.muted }]}>
             Choose a strong password you have not used elsewhere.
           </Text>
         </View>
@@ -77,7 +78,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: theme.primarySoft,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
@@ -86,14 +86,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hintText: {
     flex: 1,
     fontSize: 13,
-    color: theme.muted,
     lineHeight: 18,
   },
   btn: {

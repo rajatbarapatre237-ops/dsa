@@ -1,0 +1,4 @@
+storeFile=dsa-release.keystore
+storePassword=YOUR_STORE_PASSWORD
+keyAlias=dsa-lms
+keyPassword=YOUR_KEY_PASSWORD

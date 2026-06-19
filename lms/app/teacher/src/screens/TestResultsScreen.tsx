@@ -18,6 +18,7 @@ import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 import { WorkStackParamList } from '../navigation/types';
 
 type TestResult = {
@@ -99,6 +100,7 @@ function ResultRow({
 }
 
 export default function TestResultsScreen() {
+  const colors = useThemeColors();
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<TestResult[]>([]);
@@ -181,10 +183,10 @@ export default function TestResultsScreen() {
           </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <AppIcon name="search" size={18} color={theme.muted} />
+        <View style={[styles.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+          <AppIcon name="search" size={18} color={colors.muted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.inputText }]}
             value={search}
             onChangeText={setSearch}
             placeholder="Search student, ID, or test"
@@ -242,6 +244,7 @@ export default function TestResultsScreen() {
       onBack={() => navigation.navigate('WorkHub')}
       scroll={false}>
       <FlatList
+        style={styles.flex}
         data={loading ? [] : filteredItems}
         keyExtractor={(item, index) => `${item.test_id ?? 't'}-${item.student_id ?? index}`}
         renderItem={({ item }) => (
@@ -262,6 +265,8 @@ export default function TestResultsScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={PRIMARY} />}
         initialNumToRender={20}
         maxToRenderPerBatch={25}
@@ -273,6 +278,7 @@ export default function TestResultsScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   listContent: { padding: 16, paddingBottom: 100 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   statBox: {
@@ -292,15 +298,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
     marginBottom: 12,
     gap: 8,
   },
-  searchInput: { flex: 1, fontSize: 16, color: theme.text, padding: 0 },
+  searchInput: { flex: 1, fontSize: 16, padding: 0 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',

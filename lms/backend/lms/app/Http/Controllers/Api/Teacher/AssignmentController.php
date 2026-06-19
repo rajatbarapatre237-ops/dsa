@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Support\AssignmentContent;
 use App\Support\AssignmentFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,12 +15,7 @@ class AssignmentController extends Controller
 {
     private function formatRow(object $row): array
     {
-        $data = (array) $row;
-        if (($row->type ?? '') === 'link') {
-            $data['link_url'] = $row->document;
-        }
-
-        return $data;
+        return AssignmentContent::formatRow($row);
     }
 
     private function findRow(Request $request, int $id): ?object
@@ -44,8 +40,11 @@ class AssignmentController extends Controller
             ->when($courses->isNotEmpty(), fn ($q) => $q->whereIn('course', $courses))
             ->pluck('name');
 
+        $kind = $request->query('content_kind');
+
         $rows = DB::table('assignement')
             ->when($batches->isNotEmpty(), fn ($q) => $q->whereIn('batch_name', $batches))
+            ->when(in_array($kind, ['assignment', 'note'], true), fn ($q) => $q->where('content_kind', $kind))
             ->orderByDesc('id')
             ->limit(200)
             ->get()
@@ -95,16 +94,34 @@ class AssignmentController extends Controller
         return response()->json(['status' => 'success', 'batches' => $rows]);
     }
 
+    public function subjectsForBatch(Request $request): JsonResponse
+    {
+        $batch = (string) $request->query('batch_name', '');
+        $email = (string) $request->attributes->get('api_user')['email'];
+        $subjects = AssignmentContent::subjectsForBatch($batch ?: null, $email ?: null);
+
+        return response()->json(['status' => 'success', 'subjects' => $subjects]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $type = $request->input('type');
         $validated = $request->validate([
             'type' => ['required', 'in:link,file'],
+            'content_kind' => ['nullable', 'in:assignment,note'],
             'batch_name' => ['required', 'string', 'max:255'],
             'document_name' => ['required', 'string', 'max:255'],
+            'subject_id' => ['nullable', 'integer'],
+            'subject_name' => ['nullable', 'string', 'max:255'],
             'link' => ['required_if:type,link', 'nullable', 'string', 'max:2000'],
-            'file' => ['required_if:type,file', 'nullable', 'file', 'max:20480'],
+            'file' => ['required_if:type,file', 'nullable', 'file', 'max:20480', 'mimes:pdf,txt,jpg,jpeg,png,gif,webp,doc,docx'],
         ]);
+
+        $subject = AssignmentContent::resolveSubject(
+            isset($validated['subject_id']) ? (int) $validated['subject_id'] : null,
+            $validated['subject_name'] ?? null,
+        );
+        $contentKind = $validated['content_kind'] ?? 'assignment';
 
         $document = '';
         if ($type === 'link') {
@@ -124,9 +141,14 @@ class AssignmentController extends Controller
             'document_name' => $validated['document_name'],
             'document' => $document,
             'status' => 1,
+            'content_kind' => $contentKind,
+            'subject_id' => $subject['subject_id'],
+            'subject_name' => $subject['subject_name'],
         ]);
 
-        return response()->json(['status' => 'success', 'message' => 'Assignment added']);
+        $label = $contentKind === 'note' ? 'Note' : 'Assignment';
+
+        return response()->json(['status' => 'success', 'message' => "{$label} added"]);
     }
 
     public function updateStatus(Request $request, int $id): JsonResponse

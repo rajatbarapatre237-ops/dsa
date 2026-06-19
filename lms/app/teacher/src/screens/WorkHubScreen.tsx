@@ -21,12 +21,16 @@ function isMeaningfulAssignment(item: any) {
   return !!(name || batch);
 }
 
+function contentKindOf(item: any) {
+  return item.content_kind === 'note' ? 'note' : 'assignment';
+}
+
 function assignmentLabel(item: any) {
   const name = String(item.document_name ?? '').trim();
   if (name) return name;
   const batch = String(item.batch_name ?? '').trim();
-  if (batch) return `Assignment for ${batch}`;
-  return 'Untitled assignment';
+  if (batch) return `Item for ${batch}`;
+  return 'Untitled';
 }
 
 export default function WorkHubScreen() {
@@ -55,8 +59,14 @@ export default function WorkHubScreen() {
 
   useRefreshOnFocus(() => load());
 
-  const activeAssignments = assignments.filter(a => isActiveAssignment(a) && isMeaningfulAssignment(a));
+  const activeAssignments = assignments.filter(
+    a => isActiveAssignment(a) && isMeaningfulAssignment(a) && contentKindOf(a) === 'assignment',
+  );
+  const activeNotes = assignments.filter(
+    a => isActiveAssignment(a) && isMeaningfulAssignment(a) && contentKindOf(a) === 'note',
+  );
   const recentAssignments = activeAssignments.slice(0, 3);
+  const recentNotes = activeNotes.slice(0, 3);
   const recentTests = tests.slice(0, 3);
 
   return (
@@ -65,16 +75,16 @@ export default function WorkHubScreen() {
       refreshing={refreshing}
       onRefresh={() => load({ showRefresh: true })}>
       <Card>
-        <Text style={styles.summaryTitle}>Assignments & class tests</Text>
-        <Text style={styles.summaryHint}>Manage homework, uploads, and test marks</Text>
+        <Text style={styles.summaryTitle}>Assignments, notes & class tests</Text>
+        <Text style={styles.summaryHint}>Manage homework, class notes, uploads, and test marks</Text>
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{activeAssignments.length}</Text>
-            <Text style={styles.statLabel}>Active assignments</Text>
+            <Text style={styles.statLabel}>Assignments</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{assignments.length}</Text>
-            <Text style={styles.statLabel}>Total assignments</Text>
+            <Text style={styles.statValue}>{activeNotes.length}</Text>
+            <Text style={styles.statLabel}>Notes</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{tests.length}</Text>
@@ -87,14 +97,28 @@ export default function WorkHubScreen() {
       <ActionCard
         iconName="file-document-multiple-outline"
         title="View assignments"
-        subtitle="Browse, activate, or delete shared work"
+        subtitle="Homework and uploads by subject"
         onPress={() => navigation.navigate('AssignmentsList')}
       />
       <ActionCard
         iconName="file-upload-outline"
         title="Add assignment"
-        subtitle="Share a link or upload a file for a batch"
+        subtitle="Share a link or upload a photo for a batch"
         onPress={() => navigation.navigate('AddAssignment')}
+      />
+
+      <Text style={styles.section}>Notes</Text>
+      <ActionCard
+        iconName="notebook-outline"
+        title="View notes"
+        subtitle="Class notes shared by subject"
+        onPress={() => navigation.navigate('NotesList', { contentKind: 'note' })}
+      />
+      <ActionCard
+        iconName="camera-outline"
+        title="Add note"
+        subtitle="Take a photo or upload notes for a subject"
+        onPress={() => navigation.navigate('AddNote', { contentKind: 'note' })}
       />
 
       <Text style={styles.section}>Class tests</Text>
@@ -123,7 +147,7 @@ export default function WorkHubScreen() {
         onPress={() => navigation.navigate('TestResults')}
       />
 
-      {(recentTests.length > 0 || recentAssignments.length > 0) && (
+      {(recentTests.length > 0 || recentAssignments.length > 0 || recentNotes.length > 0) && (
         <Text style={styles.section}>Recent</Text>
       )}
 
@@ -143,15 +167,33 @@ export default function WorkHubScreen() {
         </Card>
       ) : null}
 
+      {recentNotes.length > 0 ? (
+        <Card title="Latest notes">
+          {recentNotes.map((note: any, index: number) => (
+            <Pressable
+              key={note.id}
+              style={[styles.recentRow, index > 0 && styles.recentRowBorder]}
+              onPress={() => navigation.navigate('NotesList', { contentKind: 'note' })}>
+              <Text style={styles.recentTitle}>{assignmentLabel(note)}</Text>
+              <Text style={styles.recentSub}>
+                {[note.subject_name, note.batch_name].filter(Boolean).join(' · ') || 'No batch'}
+              </Text>
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+
       {recentAssignments.length > 0 ? (
-        <Card title="Active assignments">
+        <Card title="Latest assignments">
           {recentAssignments.map((assignment: any, index: number) => (
             <Pressable
               key={assignment.id}
               style={[styles.recentRow, index > 0 && styles.recentRowBorder]}
               onPress={() => navigation.navigate('AssignmentsList')}>
               <Text style={styles.recentTitle}>{assignmentLabel(assignment)}</Text>
-              <Text style={styles.recentSub}>{assignment.batch_name || 'No batch'}</Text>
+              <Text style={styles.recentSub}>
+                {[assignment.subject_name, assignment.batch_name].filter(Boolean).join(' · ') || 'No batch'}
+              </Text>
             </Pressable>
           ))}
         </Card>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -9,7 +9,8 @@ import CoursesScreen from '../screens/CoursesScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import AssignmentsHubScreen from '../screens/AssignmentsHubScreen';
-import AssignmentsScreen from '../screens/AssignmentsScreen';
+import ContentSubjectsScreen from '../screens/ContentSubjectsScreen';
+import ContentListScreen from '../screens/ContentListScreen';
 import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
 import AssignmentFileScreen from '../screens/AssignmentFileScreen';
 import TestResultsScreen from '../screens/TestResultsScreen';
@@ -18,6 +19,9 @@ import AccountHomeScreen from '../screens/AccountHomeScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import AppIcon from '../components/AppIcon';
 import { PRIMARY } from '../config';
+import { androidTabLabelStyle } from '../ui/typography';
+import { resetStackOnTabPress } from './resetStackOnTabPress';
+import { useTabBarStyle } from './useTabBarStyle';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -59,7 +63,8 @@ function AssignmentsStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AssignmentsHub">
       <Stack.Screen name="AssignmentsHub" component={AssignmentsHubScreen} />
-      <Stack.Screen name="AssignmentsList" component={AssignmentsScreen} />
+      <Stack.Screen name="ContentSubjects" component={ContentSubjectsScreen} />
+      <Stack.Screen name="ContentList" component={ContentListScreen} />
       <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
       <Stack.Screen name="AssignmentFile" component={AssignmentFileScreen} />
     </Stack.Navigator>
@@ -77,23 +82,38 @@ function AccountStack() {
 }
 
 export default function MainTabs() {
+  const { tabBarStyle } = useTabBarStyle();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: PRIMARY,
         tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle,
+        tabBarHideOnKeyboard: true,
+        tabBarLabelStyle: androidTabLabelStyle,
+        tabBarIconStyle: Platform.OS === 'android' ? styles.tabBarIconAndroid : undefined,
         tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
       })}>
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Academics" component={AcademicsStack} options={{ title: 'Academics' }} />
-      <Tab.Screen name="Assignments" component={AssignmentsStack} />
-      <Tab.Screen name="Account" component={AccountStack} />
+      <Tab.Screen
+        name="Academics"
+        component={AcademicsStack}
+        options={{ title: 'Academics' }}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen
+        name="Assignments"
+        component={AssignmentsStack}
+        options={{ title: 'Work' }}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen name="Account" component={AccountStack} listeners={resetStackOnTabPress()} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: { height: 62, paddingBottom: 8, paddingTop: 6, backgroundColor: '#fff' },
+  tabBarIconAndroid: { marginTop: 2 },
 });

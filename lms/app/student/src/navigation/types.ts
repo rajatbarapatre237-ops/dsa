@@ -15,6 +15,12 @@ export type AcademicsStackParamList = {
 
 export type AssignmentsStackParamList = {
   AssignmentsHub: undefined;
+  ContentSubjects: { contentKind: 'assignment' | 'note' };
+  ContentList: {
+    contentKind: 'assignment' | 'note';
+    subjectId?: number | null;
+    subjectName: string;
+  };
   AssignmentsList: undefined;
   AssignmentDetail: { id: number };
   AssignmentFile: { id: number };

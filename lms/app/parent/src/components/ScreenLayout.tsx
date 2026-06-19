@@ -7,10 +7,13 @@ import {
   RefreshControl,
   Pressable,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PRIMARY } from '../config';
-import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
+import { platformWeight } from '../ui/typography';
+import { useTabBarStyle } from '../navigation/useTabBarStyle';
 import AppIcon from './AppIcon';
 
 type Props = {
@@ -35,11 +38,13 @@ export default function ScreenLayout({
   rightAction,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
+  const { contentBottomPadding } = useTabBarStyle();
   const showSubtitle = !!onBack && !!subtitle;
 
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.card} />
+    <View style={[styles.header, { paddingTop: insets.top, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <StatusBar barStyle={colors.isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
       <View style={styles.headerRow}>
         {onBack ? (
           <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
@@ -49,11 +54,11 @@ export default function ScreenLayout({
           <View style={styles.sideSlot} />
         )}
         <View style={styles.headerText}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {title}
           </Text>
           {showSubtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={[styles.subtitle, { color: colors.muted }]} numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
@@ -65,7 +70,7 @@ export default function ScreenLayout({
 
   if (!scroll) {
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
         {header}
         <View style={styles.body}>{children}</View>
       </View>
@@ -73,11 +78,11 @@ export default function ScreenLayout({
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       {header}
       <ScrollView
         style={styles.body}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />
@@ -90,12 +95,10 @@ export default function ScreenLayout({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.bg },
+  root: { flex: 1 },
   header: {
-    backgroundColor: theme.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.border,
-    shadowColor: theme.shadow,
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -125,16 +128,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   title: {
-    color: theme.text,
     fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    ...platformWeight('800'),
+    letterSpacing: Platform.OS === 'android' ? 0 : -0.2,
   },
   subtitle: {
-    color: theme.muted,
     fontSize: 12,
     marginTop: 1,
   },
   body: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 100 },
+  scrollContent: { padding: 16 },
 });

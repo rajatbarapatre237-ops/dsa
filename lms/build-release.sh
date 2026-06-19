@@ -27,7 +27,7 @@ for i in "${!APPS[@]}"; do
     exit 1
   fi
 
-  dest="$out_dir/dsa-lms-${name}-v1.0.apk"
+  dest="$out_dir/dsa-lms-${name}-v1.0.1.apk"
   cp "$apk" "$dest"
   echo "    -> $dest"
 

@@ -59,6 +59,7 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
   }, [load]);
 
   const isLink = String(item?.type ?? '').toLowerCase() === 'link';
+  const isNote = item?.content_kind === 'note';
   const linkUrl = normalizeUrl(item?.link_url ?? item?.document);
   const active = isActiveStatus(item?.status);
 
@@ -103,7 +104,7 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
 
   return (
     <ScreenLayout
-      title="Assignment"
+      title={isNote ? 'Note' : 'Assignment'}
       subtitle={item?.document_name ?? 'Details'}
       onBack={() => navigation.goBack()}
       refreshing={loading}
@@ -121,7 +122,8 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
           <AssignmentStatusToggle active={active} onChange={toggleStatus} />
 
           <Card title="Details">
-            <AssignmentInfoRow icon="document-text-outline" label="Document name" value={item.document_name} />
+            <AssignmentInfoRow icon="document-text-outline" label="Title" value={item.document_name} />
+            <AssignmentInfoRow icon="book-outline" label="Subject" value={item.subject_name} />
             <AssignmentInfoRow icon="people-outline" label="Batch" value={item.batch_name} />
             <AssignmentInfoRow
               icon={isLink ? 'link-outline' : 'document-attach-outline'}

@@ -111,10 +111,16 @@ export default function AttendanceHubScreen() {
         onPress={() => navigation.navigate('AddAttendance')}
       />
       <ActionCard
-        iconName="clipboard-list-outline"
-        title="View records"
-        subtitle="Browse attendance history for this month"
+        iconName="calendar-outline"
+        title="View attendance"
+        subtitle="Daily student records and per-student summaries"
         onPress={() => navigation.navigate('ViewAttendance')}
+      />
+      <ActionCard
+        iconName="clipboard-list-outline"
+        title="My attendance"
+        subtitle="Your NFC entry/exit log and summary by course"
+        onPress={() => navigation.navigate('MyAttendance')}
       />
 
       <Text style={styles.section}>Recent activity</Text>

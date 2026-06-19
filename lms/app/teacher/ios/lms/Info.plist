@@ -35,6 +35,12 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos to attach class notes and assignments.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos to attach class notes and assignments.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save photos for class notes and assignments.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

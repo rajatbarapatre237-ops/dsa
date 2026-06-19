@@ -12,7 +12,12 @@ export const LmsApi = {
   courses: () => http.get(`${p}/courses`).then(r => r.data),
   attendance: (month?: string) =>
     http.get(`${p}/attendance`, { params: month ? { month } : {} }).then(r => r.data),
-  assignments: () => http.get(`${p}/assignments`).then(r => r.data),
+  assignments: (params?: {
+    content_kind?: 'assignment' | 'note';
+    subject_id?: number;
+  }) => http.get(`${p}/assignments`, { params }).then(r => r.data),
+  contentSubjects: (content_kind: 'assignment' | 'note') =>
+    http.get(`${p}/content-subjects`, { params: { content_kind } }).then(r => r.data),
   assignment: (id: number) => http.get(`${p}/assignments/${id}`).then(r => r.data),
   transactions: () => http.get(`${p}/transactions`).then(r => r.data),
   salary: () => http.get(`${p}/salary`).then(r => r.data),

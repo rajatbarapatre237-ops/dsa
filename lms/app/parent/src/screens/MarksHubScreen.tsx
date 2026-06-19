@@ -8,7 +8,9 @@ import {
   LatestMarksCard,
   MarksOverviewCard,
   RecentMarksCard,
+  SubjectGrowthCards,
   TestResult,
+  groupResultsBySubject,
   marksStats,
 } from '../components/MarksUi';
 import { LmsApi } from '../api/lms';
@@ -51,22 +53,22 @@ export default function MarksHubScreen() {
   const latest = sorted[0];
   const stats = marksStats(sorted);
   const recent = sorted.slice(0, 5);
+  const subjectGrowth = useMemo(() => groupResultsBySubject(sorted), [sorted]);
 
   const openDetail = (result: TestResult) => {
     navigation.navigate('ClassTestResultDetail', { result: result as Record<string, unknown> });
   };
 
+  const openSubjectResults = (subjectName: string) => {
+    navigation.navigate('TestResults', { subjectName });
+  };
+
   return (
     <ScreenLayout
-      title="Marks"
+      title="Growth"
       refreshing={refreshing}
       onRefresh={() => load({ showRefresh: true })}>
       <StudentContextCard name={child?.name} course={child?.course_name} batch={child?.batch} />
-
-      <LatestMarksCard
-        result={latest}
-        onPress={latest ? () => openDetail(latest) : undefined}
-      />
 
       <MarksOverviewCard
         total={stats.total}
@@ -76,10 +78,19 @@ export default function MarksHubScreen() {
         passRate={stats.passRate}
       />
 
+      <LatestMarksCard
+        result={latest}
+        onPress={latest ? () => openDetail(latest) : undefined}
+      />
+
+      <SectionTitle>Growth by subject</SectionTitle>
+      <SubjectGrowthCards subjects={subjectGrowth} onSubjectPress={openSubjectResults} />
+
       <SectionTitle>Explore</SectionTitle>
       <ExploreMarksTiles
         onAllMarks={() => navigation.navigate('AllTestMarks')}
         onClassResults={() => navigation.navigate('TestResults')}
+        onSubjectResults={() => navigation.navigate('TestResults')}
       />
 
       <RecentMarksCard

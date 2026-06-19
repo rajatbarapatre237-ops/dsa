@@ -1,13 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Text, StyleSheet, View, TextInput, Pressable } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { FormPicker } from '../components/FormPicker';
 import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
+import { AttendanceStackParamList } from '../navigation/types';
 import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 import { formatStudentBatch } from '../utils/student';
 
 type AttendanceRecord = {
@@ -70,7 +73,8 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
 }
 
 export default function ViewAttendanceScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<AttendanceStackParamList>>();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<AttendanceRecord[]>([]);
   const [search, setSearch] = useState('');
@@ -172,6 +176,19 @@ export default function ViewAttendanceScreen() {
       onBack={() => navigation.navigate('AttendanceHub')}
       refreshing={loading}
       onRefresh={load}>
+      <Pressable
+        style={({ pressed }) => [styles.summaryLink, pressed && styles.summaryLinkPressed]}
+        onPress={() => navigation.navigate('StudentAttendanceList')}>
+        <View style={styles.summaryLinkMain}>
+          <AppIcon name="people-outline" size={20} color={PRIMARY} />
+          <View style={styles.summaryLinkText}>
+            <Text style={styles.summaryLinkTitle}>Student summaries</Text>
+            <Text style={styles.summaryLinkSub}>Pick a course and view totals by student</Text>
+          </View>
+        </View>
+        <AppIcon name="chevron-forward" size={18} color={theme.muted} />
+      </Pressable>
+
       <Card>
         <FormPicker
           label="Month"
@@ -187,10 +204,10 @@ export default function ViewAttendanceScreen() {
           <Text style={styles.monthHint}>Showing the latest 500 records across all months</Text>
         ) : null}
 
-        <View style={styles.searchWrap}>
-          <AppIcon name="search" size={18} color={theme.muted} />
+        <View style={[styles.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+          <AppIcon name="search" size={18} color={colors.muted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.inputText }]}
             value={search}
             onChangeText={setSearch}
             placeholder="Search by name or student ID"
@@ -282,6 +299,40 @@ export default function ViewAttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
+  summaryLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f7ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  summaryLinkPressed: {
+    opacity: 0.85,
+  },
+  summaryLinkMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  summaryLinkText: {
+    flex: 1,
+  },
+  summaryLinkTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.text,
+  },
+  summaryLinkSub: {
+    fontSize: 12,
+    color: theme.muted,
+    marginTop: 2,
+  },
   monthHint: {
     fontSize: 12,
     color: theme.muted,
@@ -292,18 +343,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
     marginBottom: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: theme.text,
     padding: 0,
   },
   filterRow: {

@@ -11,8 +11,8 @@ export type AttendanceStackParamList = {
 
 export type MarksStackParamList = {
   MarksHub: undefined;
-  AllTestMarks: undefined;
-  TestResults: undefined;
+  AllTestMarks: { subjectName?: string } | undefined;
+  TestResults: { subjectName?: string } | undefined;
   ClassTestResultDetail: { result: Record<string, unknown> };
 };
 

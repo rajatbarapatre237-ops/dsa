@@ -13,6 +13,7 @@ import AppIcon from '../components/AppIcon';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+import { useThemeColors } from '../ui/useThemeColors';
 import { StudentsStackParamList } from '../navigation/types';
 import { formatStudentDisplayId, formatStudentSubtitle } from '../utils/student';
 
@@ -27,6 +28,7 @@ type Pagination = {
 
 export default function StudentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<StudentsStackParamList>>();
+  const colors = useThemeColors();
   const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -141,10 +143,10 @@ export default function StudentsScreen() {
       refreshing={refreshing}
       onRefresh={() => load({ showRefresh: true })}>
       <Card>
-        <View style={styles.searchWrap}>
-          <AppIcon name="search" size={18} color={theme.muted} />
+        <View style={[styles.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+          <AppIcon name="search" size={18} color={colors.muted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.inputText }]}
             value={search}
             onChangeText={setSearch}
             placeholder="Search by name or ID"
@@ -244,18 +246,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
     marginBottom: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: theme.text,
     padding: 0,
   },
   filterRow: {

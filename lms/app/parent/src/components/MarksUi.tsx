@@ -39,6 +39,42 @@ export function marksStats(results: TestResult[]) {
   return { total, passed, failed, averagePercent, passRate };
 }
 
+export type SubjectGrowth = {
+  subjectName: string;
+  testCount: number;
+  averagePercent: number;
+  passed: number;
+  failed: number;
+};
+
+export function groupResultsBySubject(results: TestResult[]): SubjectGrowth[] {
+  const map = new Map<string, TestResult[]>();
+
+  results.forEach(result => {
+    const subject = String(result.subject_name ?? 'General').trim() || 'General';
+    const bucket = map.get(subject) ?? [];
+    bucket.push(result);
+    map.set(subject, bucket);
+  });
+
+  return [...map.entries()]
+    .map(([subjectName, rows]) => {
+      const stats = marksStats(rows);
+      return {
+        subjectName,
+        testCount: stats.total,
+        averagePercent: stats.averagePercent,
+        passed: stats.passed,
+        failed: stats.failed,
+      };
+    })
+    .sort((a, b) => a.subjectName.localeCompare(b.subjectName));
+}
+
+export function uniqueSubjectNames(results: TestResult[]) {
+  return [...new Set(results.map(r => String(r.subject_name ?? 'General').trim() || 'General'))].sort();
+}
+
 function resultTone(result: TestResult) {
   const passed = isTestPassed(result);
   if (passed === true) {
@@ -176,9 +212,11 @@ export function MarksOverviewCard({
 export function ExploreMarksTiles({
   onAllMarks,
   onClassResults,
+  onSubjectResults,
 }: {
   onAllMarks: () => void;
   onClassResults: () => void;
+  onSubjectResults?: () => void;
 }) {
   return (
     <View style={styles.exploreRow}>
@@ -200,6 +238,99 @@ export function ExploreMarksTiles({
         <Text style={styles.exploreTitle}>Results</Text>
         <Text style={styles.exploreSub}>Class test details</Text>
       </Pressable>
+      {onSubjectResults ? (
+        <Pressable
+          style={({ pressed }) => [styles.exploreTile, styles.exploreTileSubject, pressed && styles.pressedTile]}
+          onPress={onSubjectResults}>
+          <View style={[styles.exploreIcon, { backgroundColor: '#dcfce7' }]}>
+            <AppIcon name="book-outline" size={22} color="#166534" />
+          </View>
+          <Text style={styles.exploreTitle}>By subject</Text>
+          <Text style={styles.exploreSub}>Subject-wise tests</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+export function SubjectGrowthCards({
+  subjects,
+  onSubjectPress,
+}: {
+  subjects: SubjectGrowth[];
+  onSubjectPress?: (subjectName: string) => void;
+}) {
+  if (!subjects.length) {
+    return (
+      <View style={styles.subjectEmptyCard}>
+        <Text style={styles.recentEmpty}>No subject-wise growth data yet</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.subjectGrid}>
+      {subjects.map(subject => {
+        const card = (
+          <View style={styles.subjectCard}>
+            <Text style={styles.subjectName} numberOfLines={2}>
+              {subject.subjectName}
+            </Text>
+            <Text style={styles.subjectAvg}>{subject.averagePercent}%</Text>
+            <Text style={styles.subjectMeta}>
+              {subject.testCount} test{subject.testCount === 1 ? '' : 's'} · {subject.passed} passed
+            </Text>
+          </View>
+        );
+
+        if (onSubjectPress) {
+          return (
+            <Pressable
+              key={subject.subjectName}
+              onPress={() => onSubjectPress(subject.subjectName)}
+              style={({ pressed }) => [pressed && styles.pressedTile]}>
+              {card}
+            </Pressable>
+          );
+        }
+
+        return <View key={subject.subjectName}>{card}</View>;
+      })}
+    </View>
+  );
+}
+
+export function SubjectFilterChips({
+  subjects,
+  selected,
+  onSelect,
+}: {
+  subjects: string[];
+  selected: string | null;
+  onSelect: (subject: string | null) => void;
+}) {
+  if (!subjects.length) return null;
+
+  return (
+    <View style={styles.chipRow}>
+      <Pressable
+        style={[styles.chip, !selected && styles.chipActive]}
+        onPress={() => onSelect(null)}>
+        <Text style={[styles.chipText, !selected && styles.chipTextActive]}>All</Text>
+      </Pressable>
+      {subjects.map(subject => {
+        const active = selected === subject;
+        return (
+          <Pressable
+            key={subject}
+            style={[styles.chip, active && styles.chipActive]}
+            onPress={() => onSelect(subject)}>
+            <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+              {subject}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -407,9 +538,11 @@ const styles = StyleSheet.create({
   statFail: { backgroundColor: '#fef2f2' },
   overviewStatValue: { fontSize: 20, fontWeight: '800', color: theme.text },
   overviewStatLabel: { fontSize: 10, fontWeight: '700', color: theme.muted, marginTop: 4 },
-  exploreRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  exploreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   exploreTile: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 100,
     backgroundColor: theme.card,
     borderRadius: 18,
     padding: 16,
@@ -424,6 +557,7 @@ const styles = StyleSheet.create({
   },
   exploreTileAll: { borderColor: '#bae6fd' },
   exploreTileResults: { borderColor: '#ddd6fe' },
+  exploreTileSubject: { borderColor: '#bbf7d0' },
   pressedTile: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   exploreIcon: {
     width: 44,
@@ -474,4 +608,39 @@ const styles = StyleSheet.create({
   },
   recentBadgeText: { fontSize: 10, fontWeight: '800' },
   recentEmpty: { fontSize: 14, color: theme.muted, textAlign: 'center', paddingVertical: 12 },
+  subjectGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  subjectCard: {
+    width: '48%',
+    flexGrow: 1,
+    backgroundColor: theme.card,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+    minWidth: 140,
+  },
+  subjectName: { fontSize: 14, fontWeight: '800', color: theme.text, minHeight: 36 },
+  subjectAvg: { fontSize: 28, fontWeight: '800', color: PRIMARY, marginTop: 8 },
+  subjectMeta: { fontSize: 11, color: theme.muted, marginTop: 6 },
+  subjectEmptyCard: {
+    backgroundColor: theme.card,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  chip: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: theme.border,
+    maxWidth: 180,
+  },
+  chipActive: { backgroundColor: theme.primarySoft, borderColor: PRIMARY },
+  chipText: { fontSize: 12, fontWeight: '700', color: theme.muted },
+  chipTextActive: { color: PRIMARY },
 });

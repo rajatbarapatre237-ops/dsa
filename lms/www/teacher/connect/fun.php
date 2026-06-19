@@ -63,9 +63,7 @@ class fun
      return $courseee;
    }
    public function fetchcoursedistinct($email){
-    $sql = "SELECT DISTINCT course FROM `course_assign` WHERE `email`='$email'";
-    $courseee = mysqli_query($this->db, $sql);
-     return $courseee;
+    return $this->fetchTeacherCourses($email);
    }
 
     public function fetchAllStudents()
@@ -1031,9 +1029,18 @@ class fun
         return $fetch['name'];
     }
     public function fetchassigncourse($email){
-        $sql = "SELECT `course` FROM `course_assign` WHERE `email`= '$email'";
-        $fetch = mysqli_query($this->db,$sql);
-        return $fetch;
+        return $this->fetchTeacherCourses($email);
+    }
+
+    /** Courses assigned via courses_subjects or course_assign. */
+    public function fetchTeacherCourses($email)
+    {
+        $email = mysqli_real_escape_string($this->db, $email);
+        $sql = "SELECT DISTINCT course_name AS course FROM courses_subjects WHERE teacher_email = '$email'
+                UNION
+                SELECT DISTINCT course AS course FROM course_assign WHERE email = '$email'
+                ORDER BY course ASC";
+        return mysqli_query($this->db, $sql);
     }
     public function fetchbatchwithcourse($course){
         $sql = "SELECT `name` FROM `batches` WHERE `course`= '$course'";
@@ -1051,9 +1058,6 @@ class fun
               PRIMARY KEY (`id`),
               UNIQUE KEY `session_name` (`session_name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
-        );
-        mysqli_query($this->db,
-            "INSERT IGNORE INTO `academic_sessions` (`session_name`, `status`) VALUES ('2024-25', 1), ('2025-26', 1)"
         );
         $col = mysqli_query($this->db, "SHOW COLUMNS FROM `stud_details` LIKE 'session_name'");
         if ($col && mysqli_num_rows($col) === 0) {
@@ -1075,12 +1079,15 @@ class fun
         return mysqli_query($this->db, $sql);
     }
 
-    /** Filter students by course, session; batch optional (all batches if empty). */
+    /** Filter students by course; session and batch optional. */
     public function fetchStudentsFiltered($cou, $session, $batch = '')
     {
         $cou = mysqli_real_escape_string($this->db, $cou);
-        $session = mysqli_real_escape_string($this->db, $session);
-        $sql = "SELECT * FROM `stud_details` WHERE `course_name` = '$cou' AND `session_name` = '$session'";
+        $sql = "SELECT * FROM `stud_details` WHERE `course_name` = '$cou'";
+        if ($session !== null && $session !== '') {
+            $session = mysqli_real_escape_string($this->db, $session);
+            $sql .= " AND `session_name` = '$session'";
+        }
         if ($batch !== null && $batch !== '') {
             $batch = mysqli_real_escape_string($this->db, $batch);
             $sql .= " AND `batch` = '$batch'";
@@ -1096,20 +1103,106 @@ class fun
     }
 
     public function fetchAttendance($student_id){
+        $student_id = (int) $student_id;
         $sql = "SELECT 
                 sid,
                 course,
                 batch,
                 COUNT(DISTINCT date) AS total_days, 
-                SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) AS present_days, 
-                SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) AS absent_days, 
-                (SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) / COUNT(DISTINCT date)) * 100 AS attendance_percentage
+                SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) AS present_days, 
+                SUM(CASE WHEN LOWER(status) = 'absent' THEN 1 ELSE 0 END) AS absent_days, 
+                (SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT date), 0)) * 100 AS attendance_percentage
               FROM attendance
               WHERE sid = '$student_id' 
-              GROUP BY sid, course";
-        $attend = mysqli_query($this->db,$sql);
-        return $attend;
+              GROUP BY sid, course, batch";
+        return mysqli_query($this->db, $sql);
     }
+
+    public function ensureTeacherAttendanceSchema()
+    {
+        static $done = false;
+        if ($done) {
+            return;
+        }
+        $done = true;
+        mysqli_query($this->db,
+            "CREATE TABLE IF NOT EXISTS `teacher_attendance` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `tid` int(11) NOT NULL,
+              `date` date NOT NULL,
+              `entry_time` datetime DEFAULT NULL,
+              `exit_time` datetime DEFAULT NULL,
+              `course` varchar(255) DEFAULT NULL,
+              `status` varchar(50) DEFAULT '',
+              PRIMARY KEY (`id`),
+              KEY `idx_tid_date` (`tid`, `date`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+        );
+    }
+
+    /** Summary by course for logged-in teacher (NFC card in/out). */
+    public function fetchMyTeacherAttendance($teacherId)
+    {
+        $this->ensureTeacherAttendanceSchema();
+        $teacherId = (int) $teacherId;
+        $sql = "SELECT
+                tid,
+                course,
+                COUNT(DISTINCT date) AS total_days,
+                SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) AS present_days,
+                SUM(CASE WHEN LOWER(status) = 'absent' THEN 1 ELSE 0 END) AS absent_days,
+                (SUM(CASE WHEN LOWER(status) = 'present' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT date), 0)) * 100 AS attendance_percentage
+              FROM teacher_attendance
+              WHERE tid = '$teacherId'
+              GROUP BY tid, course
+              ORDER BY course ASC";
+        return mysqli_query($this->db, $sql);
+    }
+
+    /** Daily in/out log for logged-in teacher. */
+    public function fetchMyTeacherAttendanceLog($teacherId)
+    {
+        $this->ensureTeacherAttendanceSchema();
+        $teacherId = (int) $teacherId;
+        $sql = "SELECT date, course, entry_time, exit_time, status
+                FROM teacher_attendance
+                WHERE tid = '$teacherId'
+                ORDER BY date DESC, entry_time DESC";
+        return mysqli_query($this->db, $sql);
+    }
+    
+    
+     public function getBatchByCourse($course)
+        {
+            $sql = "SELECT *
+            FROM batches
+            WHERE course='$course'
+            AND status='1'
+            ORDER BY name";
+
+    return mysqli_query($this->db,$sql);
+        }
+        public function fetchAllSessions()
+        {
+            $sql = "SELECT *
+                    FROM academic_sessions
+                    WHERE status='1'
+                    ORDER BY id DESC";
+        
+            return mysqli_query($this->db,$sql);
+        }
+        public function fetchStudentFilter($course,$batch,$session)
+        {
+            $sql = "SELECT *
+                    FROM stud_details
+                    WHERE course_name='$course'
+                    AND batch='$batch'
+                    AND session_name='$session'
+                    ORDER BY id DESC";
+        
+            return mysqli_query($this->db,$sql);
+        }
+        
 
     
 }

@@ -88,7 +88,9 @@ export default function AddAttendanceScreen() {
         status: statuses[String(st.id)] ?? 'present',
       }));
       await LmsApi.saveAttendance({ date, course, batch, records });
-      Alert.alert('Success', 'Attendance recorded');
+      Alert.alert('Success', 'Attendance recorded', [
+        { text: 'OK', onPress: () => navigation.navigate('AttendanceHub') },
+      ]);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Save failed');
     } finally {

@@ -15,7 +15,7 @@ export const LIVE_API_BASE_URL = 'https://app.dsaedu.com/api/v1';
 export const USE_LIVE_API = true;
 
 /** Same Wi‑Fi fallback when USB `adb reverse` is not used (update to your Mac IP). */
-export const DEV_LAN_HOST = '192.168.0.57';
+export const DEV_LAN_HOST = '192.168.0.58';
 
 function isAndroidEmulator(): boolean {
   if (Platform.OS !== 'android') {

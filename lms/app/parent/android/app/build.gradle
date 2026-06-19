@@ -82,8 +82,14 @@ android {
         applicationId "com.dsa.lms.parent"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
+    }
+    def signingDir = file("../../../../android-signing")
+    def releasePropsFile = new File(signingDir, "release.properties")
+    def releaseProps = new Properties()
+    if (releasePropsFile.exists()) {
+        releaseProps.load(new FileInputStream(releasePropsFile))
     }
     signingConfigs {
         debug {
@@ -92,15 +98,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (releasePropsFile.exists()) {
+                storeFile file(new File(signingDir, releaseProps.getProperty('storeFile', 'dsa-release.keystore')))
+                storePassword releaseProps.getProperty('storePassword')
+                keyAlias releaseProps.getProperty('keyAlias', 'dsa-lms')
+                keyPassword releaseProps.getProperty('keyPassword')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig releasePropsFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

@@ -18,6 +18,7 @@ import { FormPicker } from '../components/FormPicker';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
 import { platformWeight } from '../ui/typography';
 import { WorkStackParamList } from '../navigation/types';
 
@@ -42,16 +43,18 @@ const StudentMarkRow = React.memo(function StudentMarkRow({
   onMarkChange: (id: number, value: string) => void;
   isLast?: boolean;
 }) {
+  const colors = useThemeColors();
   return (
     <View style={[styles.row, isLast && styles.rowLast]}>
-      <Text style={[styles.name, platformWeight('600')]} numberOfLines={1}>
+      <Text style={[styles.name, platformWeight('600'), { color: colors.text }]} numberOfLines={1}>
         {name}
       </Text>
       <TextInput
         key={inputKey}
-        style={styles.marksInput}
+        style={[textInputStyle(colors), styles.marksInput]}
         keyboardType="numeric"
         placeholder="Marks"
+        placeholderTextColor={colors.muted}
         defaultValue={initialMark}
         onChangeText={value => onMarkChange(studentId, value)}
       />
@@ -219,7 +222,9 @@ export default function EnterClassTestMarksScreen() {
     setSaving(true);
     try {
       await LmsApi.saveClassTestMarks({ test_id: Number(testId), marks: marksRef.current });
-      Alert.alert('Success', 'Marks saved');
+      Alert.alert('Success', 'Marks saved', [
+        { text: 'OK', onPress: () => navigation.navigate('WorkHub') },
+      ]);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Save failed');
     } finally {
@@ -377,6 +382,7 @@ export default function EnterClassTestMarksScreen() {
       onBack={() => navigation.navigate('WorkHub')}
       scroll={false}>
       <FlatList
+        style={styles.flex}
         data={students}
         keyExtractor={item => String(item.student_id)}
         renderItem={renderStudent}
@@ -401,6 +407,7 @@ export default function EnterClassTestMarksScreen() {
 const STUDENT_ROW_HEIGHT = 46;
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   listContent: {
     padding: 16,
     paddingBottom: 100,
@@ -456,13 +463,10 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontSize: 14, color: theme.text },
   marksInput: {
     width: 80,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     textAlign: 'center',
     fontSize: 14,
-    backgroundColor: '#fff',
   },
   empty: {
     fontSize: 14,

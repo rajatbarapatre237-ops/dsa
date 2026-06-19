@@ -6,7 +6,10 @@ import HomeScreen from '../screens/HomeScreen';
 import StudentsScreen from '../screens/StudentsScreen';
 import StudentDetailScreen from '../screens/StudentDetailScreen';
 import AttendanceHubScreen from '../screens/AttendanceHubScreen';
+import MyAttendanceScreen from '../screens/MyAttendanceScreen';
 import ViewAttendanceScreen from '../screens/ViewAttendanceScreen';
+import StudentAttendanceListScreen from '../screens/StudentAttendanceListScreen';
+import StudentAttendanceSummaryScreen from '../screens/StudentAttendanceSummaryScreen';
 import AddAttendanceScreen from '../screens/AddAttendanceScreen';
 import WorkHubScreen from '../screens/WorkHubScreen';
 import AssignmentsScreen from '../screens/AssignmentsScreen';
@@ -24,6 +27,8 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import AppIcon from '../components/AppIcon';
 import { PRIMARY } from '../config';
 import { androidTabLabelStyle } from '../ui/typography';
+import { resetStackOnTabPress } from './resetStackOnTabPress';
+import { useTabBarStyle } from './useTabBarStyle';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -62,6 +67,9 @@ function AttendanceStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="AttendanceHub" component={AttendanceHubScreen} />
       <Stack.Screen name="ViewAttendance" component={ViewAttendanceScreen} />
+      <Stack.Screen name="StudentAttendanceList" component={StudentAttendanceListScreen} />
+      <Stack.Screen name="StudentAttendanceSummary" component={StudentAttendanceSummaryScreen} />
+      <Stack.Screen name="MyAttendance" component={MyAttendanceScreen} />
       <Stack.Screen name="AddAttendance" component={AddAttendanceScreen} />
     </Stack.Navigator>
   );
@@ -72,7 +80,9 @@ function WorkStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="WorkHub">
       <Stack.Screen name="WorkHub" component={WorkHubScreen} />
       <Stack.Screen name="AssignmentsList" component={AssignmentsScreen} />
+      <Stack.Screen name="NotesList" component={AssignmentsScreen} />
       <Stack.Screen name="AddAssignment" component={AddAssignmentScreen} />
+      <Stack.Screen name="AddNote" component={AddAssignmentScreen} />
       <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
       <Stack.Screen name="AssignmentFile" component={AssignmentFileScreen} />
       <Stack.Screen name="ClassTests" component={ClassTestsScreen} />
@@ -95,32 +105,38 @@ function AccountStack() {
 }
 
 export default function MainTabs() {
+  const { tabBarStyle } = useTabBarStyle();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: PRIMARY,
         tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle,
+        tabBarHideOnKeyboard: true,
         tabBarLabelStyle: androidTabLabelStyle,
         tabBarIconStyle: Platform.OS === 'android' ? styles.tabBarIconAndroid : undefined,
         tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
       })}>
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Students" component={StudentsStack} />
-      <Tab.Screen name="Attendance" component={AttendanceStack} />
-      <Tab.Screen name="Work" component={WorkStack} options={{ title: 'Work' }} />
-      <Tab.Screen name="Account" component={AccountStack} />
+      <Tab.Screen name="Students" component={StudentsStack} listeners={resetStackOnTabPress()} />
+      <Tab.Screen
+        name="Attendance"
+        component={AttendanceStack}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen
+        name="Work"
+        component={WorkStack}
+        options={{ title: 'Work' }}
+        listeners={resetStackOnTabPress()}
+      />
+      <Tab.Screen name="Account" component={AccountStack} listeners={resetStackOnTabPress()} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: Platform.OS === 'android' ? 64 : 62,
-    paddingBottom: Platform.OS === 'android' ? 10 : 8,
-    paddingTop: 6,
-    backgroundColor: '#fff',
-  },
   tabBarIconAndroid: { marginTop: 2 },
 });
