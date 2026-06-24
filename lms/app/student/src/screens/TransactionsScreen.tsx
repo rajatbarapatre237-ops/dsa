@@ -11,34 +11,42 @@ import {
 import { useStudentContext } from '../hooks/useStudentContext';
 import { LmsApi } from '../api/lms';
 import { theme } from '../ui/theme';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 export default function TransactionsScreen() {
   const navigation = useNavigation<any>();
   const ctx = useStudentContext();
-  const [loading, setLoading] = useState(true);
+  const { refresh: refreshContext, refreshing: ctxRefreshing } = ctx;
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await Promise.allSettled([LmsApi.transactions()]);
-      if (result[0].status === 'fulfilled') {
-        setItems(result[0].value.transactions ?? []);
-      } else {
-        setItems([]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const result = await Promise.allSettled([LmsApi.transactions()]);
+        if (result[0].status === 'fulfilled') {
+          setItems(result[0].value.transactions ?? []);
+        } else {
+          setItems([]);
+        }
+        markHasData();
+      } finally {
+        endLoad();
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  const refresh = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      await Promise.all([refreshContext(options), load(options)]);
+    },
+    [refreshContext, load],
+  );
 
-  const refresh = useCallback(async () => {
-    await Promise.all([ctx.refresh(), load()]);
-  }, [ctx, load]);
+  useRefreshOnFocus(refresh);
 
   const profile = ctx.profile;
   const totalFees = Number(profile?.course_fees ?? 0);
@@ -50,8 +58,8 @@ export default function TransactionsScreen() {
       title="Transactions"
       subtitle="Fee payments"
       onBack={() => navigation.navigate('AcademicsHub')}
-      refreshing={loading || ctx.loading}
-      onRefresh={refresh}>
+      refreshing={refreshing || ctxRefreshing}
+      onRefresh={() => refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}

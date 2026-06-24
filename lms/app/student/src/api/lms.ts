@@ -15,6 +15,7 @@ export const LmsApi = {
   assignments: (params?: {
     content_kind?: 'assignment' | 'note';
     subject_id?: number;
+    subject_name?: string;
   }) => http.get(`${p}/assignments`, { params }).then(r => r.data),
   contentSubjects: (content_kind: 'assignment' | 'note') =>
     http.get(`${p}/content-subjects`, { params: { content_kind } }).then(r => r.data),

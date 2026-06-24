@@ -43,7 +43,7 @@ export default function AccountHomeScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   async function logout() {
     Alert.alert('Logout', 'Sign out of this device?', [

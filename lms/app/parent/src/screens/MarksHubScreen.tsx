@@ -46,7 +46,7 @@ export default function MarksHubScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const child = dashboard?.child;
   const sorted = useMemo(() => sortByDateDesc(results), [results]);

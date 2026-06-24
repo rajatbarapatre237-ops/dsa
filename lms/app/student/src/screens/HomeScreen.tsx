@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import {
   MonthAttendanceSummary,
+  PendingFeesCard,
   RecentAttendanceCard,
   SectionHeader,
   SectionTitle,
@@ -39,6 +40,10 @@ export default function HomeScreen() {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 3);
 
+  const totalFees = Number(ctx.profile?.course_fees ?? 0);
+  const balance = Number(ctx.profile?.balance_fees ?? 0);
+  const paid = Math.max(0, totalFees - balance);
+
   return (
     <ScreenLayout
       title="Dashboard"
@@ -52,6 +57,18 @@ export default function HomeScreen() {
         profile={ctx.profile}
         attendanceSummary={ctx.attendanceSummary}
         monthRecords={ctx.monthRecords}
+      />
+
+      <SectionTitle>Fees</SectionTitle>
+      <PendingFeesCard
+        totalFees={totalFees}
+        balance={balance}
+        paid={paid}
+        onPress={() =>
+          navigation.navigate('Academics', {
+            screen: 'Transactions',
+          })
+        }
       />
 
       <SectionTitle>Attendance</SectionTitle>

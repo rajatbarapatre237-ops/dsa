@@ -30,6 +30,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/assignments/{id}', [AssignmentController::class, 'show']);
             Route::get('/assignments/{id}/file', [AssignmentController::class, 'download']);
             Route::post('/assignments', [AssignmentController::class, 'store']);
+            Route::post('/assignments/{id}/files', [AssignmentController::class, 'appendFile']);
+            Route::patch('/assignments/{id}', [AssignmentController::class, 'update']);
             Route::patch('/assignments/{id}/status', [AssignmentController::class, 'updateStatus']);
             Route::delete('/assignments/{id}', [AssignmentController::class, 'destroy']);
             Route::get('/form/all-batches', [AssignmentController::class, 'allBatches']);
@@ -50,9 +52,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/form/class-test/courses', [TeacherFormController::class, 'classTestCourses']);
             Route::get('/form/class-test/subjects', [TeacherFormController::class, 'classTestSubjects']);
             Route::get('/form/class-test/tests', [TeacherFormController::class, 'classTestList']);
-            Route::post('/form/class-test', [TeacherFormController::class, 'createClassTest']);
             Route::get('/form/class-test/students', [TeacherFormController::class, 'studentsForMarks']);
+            Route::get('/form/class-test-students', [TeacherFormController::class, 'studentsForMarks']);
             Route::post('/form/class-test/marks', [TeacherFormController::class, 'saveClassTestMarks']);
+            Route::post('/form/class-test', [TeacherFormController::class, 'createClassTest']);
+            Route::get('/form/class-test/{id}', [TeacherFormController::class, 'showClassTest']);
+            Route::patch('/form/class-test/{id}', [TeacherFormController::class, 'updateClassTest']);
         });
 
         Route::middleware(EnsureApiRole::class.':student')->prefix('student')->group(function () {
@@ -74,6 +79,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(EnsureApiRole::class.':parent')->prefix('parent')->group(function () {
             Route::get('/dashboard', [ParentDashboardController::class, 'index']);
             Route::get('/attendance', [ParentDashboardController::class, 'attendance']);
+            Route::get('/transactions', [ParentController::class, 'transactions']);
             Route::get('/assignments', [ParentController::class, 'assignments']);
             Route::get('/assignments/{id}', [ParentController::class, 'showAssignment']);
             Route::get('/assignments/{id}/file', [ParentController::class, 'downloadAssignment']);

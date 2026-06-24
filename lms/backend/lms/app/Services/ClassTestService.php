@@ -181,6 +181,43 @@ class ClassTestService
         }
     }
 
+    public function updateTest(
+        string $email,
+        int $testId,
+        string $testName,
+        string $testDate,
+        float $totalMarks,
+        float $passingMarks
+    ): array {
+        $test = $this->getTestRow($testId);
+        if (! $test) {
+            return ['ok' => false, 'error' => 'Test not found'];
+        }
+        if (! $this->canEnterMarks($email, $test)) {
+            return ['ok' => false, 'error' => 'You are not allowed to edit this test'];
+        }
+        if ($testName === '' || $totalMarks <= 0 || $passingMarks < 0 || $passingMarks > $totalMarks) {
+            return ['ok' => false, 'error' => 'Invalid test data'];
+        }
+
+        try {
+            DB::table('class_tests')->where('id', $testId)->update([
+                'test_name' => $testName,
+                'test_date' => $testDate,
+                'total_marks' => $totalMarks,
+                'passing_marks' => $passingMarks,
+            ]);
+
+            return ['ok' => true, 'id' => $testId];
+        } catch (\Throwable $e) {
+            if (str_contains($e->getMessage(), '1062')) {
+                return ['ok' => false, 'error' => 'A test with this name and date already exists.'];
+            }
+
+            return ['ok' => false, 'error' => 'Could not update test'];
+        }
+    }
+
     public function getTestRow(int $testId): ?object
     {
         return DB::table('class_tests as ct')

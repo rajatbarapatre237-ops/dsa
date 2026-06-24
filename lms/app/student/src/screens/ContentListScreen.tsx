@@ -27,11 +27,9 @@ export default function ContentListScreen() {
         const res: any = await LmsApi.assignments({
           content_kind: contentKind,
           subject_id: subjectId ?? undefined,
+          subject_name: subjectId ? undefined : subjectName,
         });
-        const rows = (res.assignments ?? []).filter((item: any) => {
-          if (subjectId) return true;
-          return !item.subject_id && (item.subject_name ?? 'General') === subjectName;
-        });
+        const rows = res.assignments ?? [];
         setItems(rows);
         markHasData();
       } finally {
@@ -41,7 +39,7 @@ export default function ContentListScreen() {
     [beginLoad, contentKind, endLoad, markHasData, subjectId, subjectName],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const title = `${subjectName} ${isNote ? 'notes' : 'assignments'}`;
 

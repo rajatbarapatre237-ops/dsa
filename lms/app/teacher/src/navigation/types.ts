@@ -9,10 +9,12 @@ export type WorkStackParamList = {
   NotesList: { contentKind: 'note' };
   AddAssignment: { contentKind?: 'assignment' } | undefined;
   AddNote: { contentKind: 'note' };
+  EditAssignment: { id: number };
+  EditNote: { id: number };
   AssignmentDetail: { id: number };
-  AssignmentFile: { id: number };
+  AssignmentFile: { id: number; index?: number };
   ClassTests: undefined;
-  CreateClassTest: undefined;
+  CreateClassTest: { testId?: string } | undefined;
   EnterMarks:
     | {
         courseId?: string;

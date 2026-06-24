@@ -38,7 +38,7 @@ export default function MonthlyAttendanceScreen() {
     [beginLoad, endLoad, markHasData, month],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const stats = monthAttendanceStats(items);
   const sortedRecords = [...items].sort((a, b) => String(b.date).localeCompare(String(a.date)));

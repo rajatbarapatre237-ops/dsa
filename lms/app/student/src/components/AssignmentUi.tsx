@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ViewStyle } from 'react-native';
 import AppIcon from './AppIcon';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
@@ -7,21 +7,57 @@ import { theme } from '../ui/theme';
 export function AssignmentsSummaryCard({
   count,
   label,
+  iconName = 'document-text-outline',
+  iconFamily = 'ionicons',
+  compact = false,
+  style,
 }: {
   count: number;
   label?: string;
+  iconName?: string;
+  iconFamily?: 'ionicons' | 'material';
+  compact?: boolean;
+  style?: ViewStyle;
 }) {
   return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryIcon}>
-        <AppIcon name="document-text-outline" family="ionicons" size={22} color={PRIMARY} />
+    <View style={[styles.summaryCard, compact && styles.summaryCardCompact, style]}>
+      <View style={[styles.summaryIcon, compact && styles.summaryIconCompact]}>
+        <AppIcon name={iconName} family={iconFamily} size={compact ? 20 : 22} color={PRIMARY} />
       </View>
       <View style={styles.summaryBody}>
-        <Text style={styles.summaryValue}>{count}</Text>
-        <Text style={styles.summaryLabel}>
+        <Text style={[styles.summaryValue, compact && styles.summaryValueCompact]}>{count}</Text>
+        <Text style={[styles.summaryLabel, compact && styles.summaryLabelCompact]}>
           {label ?? `Active assignment${count === 1 ? '' : 's'} for your batch`}
         </Text>
       </View>
+    </View>
+  );
+}
+
+export function WorkSummaryCardsRow({
+  assignmentsCount,
+  notesCount,
+}: {
+  assignmentsCount: number;
+  notesCount: number;
+}) {
+  return (
+    <View style={styles.summaryRow}>
+      <AssignmentsSummaryCard
+        count={assignmentsCount}
+        label="Assignments available"
+        iconName="document-text-outline"
+        compact
+        style={styles.summaryCardHalf}
+      />
+      <AssignmentsSummaryCard
+        count={notesCount}
+        label="Notes available"
+        iconName="notebook-outline"
+        iconFamily="material"
+        compact
+        style={styles.summaryCardHalf}
+      />
     </View>
   );
 }
@@ -37,6 +73,8 @@ export function AssignmentListItem({
   const batch = String(item.batch_name ?? item.batch ?? '').trim();
   const subject = String(item.subject_name ?? '').trim();
   const isLink = String(item.type ?? '').toLowerCase() === 'link';
+  const fileCount = Number(item.file_count ?? 0);
+  const fileLabel = isLink ? 'Link' : fileCount > 1 ? `${fileCount} files` : 'File';
 
   return (
     <Pressable style={({ pressed }) => [styles.listItem, pressed && styles.pressed]} onPress={onPress}>
@@ -53,12 +91,12 @@ export function AssignmentListItem({
           {title}
         </Text>
         <Text style={styles.listMeta} numberOfLines={1}>
-          {[subject, batch, isLink ? 'Link' : 'File'].filter(Boolean).join(' · ')}
+          {[subject, batch, fileLabel].filter(Boolean).join(' · ')}
         </Text>
       </View>
       <View style={[styles.typeBadge, isLink ? styles.typeLink : styles.typeFile]}>
         <Text style={[styles.typeText, isLink ? styles.typeLinkText : styles.typeFileText]}>
-          {isLink ? 'Link' : 'File'}
+          {fileLabel}
         </Text>
       </View>
       <AppIcon name="chevron-forward" size={18} color={theme.muted} />
@@ -124,6 +162,34 @@ export function AssignmentDetailRow({
   );
 }
 
+export function AssignmentFilesList({
+  files,
+  onOpen,
+}: {
+  files: { index: number; name: string }[];
+  onOpen: (index: number) => void;
+}) {
+  if (!files.length) return null;
+
+  return (
+    <View style={styles.filesCard}>
+      <Text style={styles.filesTitle}>Attached files ({files.length})</Text>
+      {files.map((file, idx) => (
+        <Pressable
+          key={`${file.index}-${file.name}`}
+          style={[styles.fileRow, idx === files.length - 1 && styles.fileRowLast]}
+          onPress={() => onOpen(file.index)}>
+          <AppIcon name="document-text-outline" family="ionicons" size={18} color={PRIMARY} />
+          <Text style={styles.fileRowText} numberOfLines={2}>
+            {file.name}
+          </Text>
+          <AppIcon name="chevron-forward" size={18} color={theme.muted} />
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: 'row',
@@ -141,6 +207,20 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 3,
   },
+  summaryCardCompact: {
+    padding: 14,
+    gap: 10,
+    borderRadius: 18,
+  },
+  summaryCardHalf: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
   summaryIcon: {
     width: 50,
     height: 50,
@@ -149,9 +229,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  summaryIconCompact: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+  },
   summaryBody: { flex: 1 },
   summaryValue: { fontSize: 28, fontWeight: '800', color: theme.text },
+  summaryValueCompact: { fontSize: 24 },
   summaryLabel: { fontSize: 13, color: theme.muted, marginTop: 4 },
+  summaryLabelCompact: { fontSize: 11, lineHeight: 15 },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,4 +328,23 @@ const styles = StyleSheet.create({
     flex: 1.2,
     textAlign: 'right',
   },
+  filesCard: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  filesTitle: { fontSize: 15, fontWeight: '800', color: theme.text, marginBottom: 10 },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  fileRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
+  fileRowText: { flex: 1, fontSize: 14, color: theme.text, fontWeight: '600' },
 });

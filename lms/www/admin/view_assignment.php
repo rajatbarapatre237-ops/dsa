@@ -7,7 +7,31 @@
   $fun=new fun($connect->dbconnect());
 
   $result = $fun->fetchAllAssignment();
-  
+
+  /** App files: served by Laravel (same disk lookup as the mobile API). */
+  $appAssignmentFilesBase = 'https://app.dsaedu.com/assignments/download/';
+
+  function admin_assignment_file_url(string $document, string $appFilesBase, int $assignmentId = 0): string
+  {
+      $document = trim($document);
+      if ($document === '') {
+          return '#';
+      }
+      if (preg_match('#^https?://#i', $document)) {
+          return $document;
+      }
+      $basename = basename($document);
+      $localPath = __DIR__.'/documents/'.$basename;
+      if (is_file($localPath)) {
+          return './documents/'.rawurlencode($basename);
+      }
+
+      if ($assignmentId > 0) {
+          return rtrim($appFilesBase, '/').'/'.$assignmentId;
+      }
+
+      return 'https://app.dsaedu.com/assignments/files/'.rawurlencode($basename);
+  }
 
 ?>
 
@@ -96,10 +120,11 @@
                       <td><?php echo $res['type'];?></td>
                       <?php 
                         if($res['type'] == 'link'){
-                          echo "<td> <a href='".$res['document']."' target='_blank'> Click here</a></td>";
+                          echo "<td> <a href='".htmlspecialchars($res['document'], ENT_QUOTES, 'UTF-8')."' target='_blank'> Click here</a></td>";
                         }
                         else{
-                          echo "<td> <a href='./documents/".$res['document']."' target='_blank'> Click here</a></td>";
+                          $fileUrl = admin_assignment_file_url((string) $res['document'], $appAssignmentFilesBase, (int) $res['id']);
+                          echo "<td> <a href='".htmlspecialchars($fileUrl, ENT_QUOTES, 'UTF-8')."' target='_blank'> Click here</a></td>";
                         }
                       
                       ?>

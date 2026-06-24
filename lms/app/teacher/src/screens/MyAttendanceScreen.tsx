@@ -5,6 +5,8 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 import { theme } from '../ui/theme';
 
 type SummaryRow = {
@@ -96,31 +98,33 @@ function LogCard({ row, last }: { row: LogRow; last?: boolean }) {
 
 export default function MyAttendanceScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [teacherName, setTeacherName] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [summary, setSummary] = useState<SummaryRow[]>([]);
   const [log, setLog] = useState<LogRow[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.myAttendance();
-      setTeacherName(res.teacher?.name ?? '');
-      setTeacherId(res.teacher?.tid != null ? String(res.teacher.tid) : '');
-      setSummary(res.summary ?? []);
-      setLog(res.log ?? []);
-    } catch {
-      setSummary([]);
-      setLog([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.myAttendance();
+        setTeacherName(res.teacher?.name ?? '');
+        setTeacherId(res.teacher?.tid != null ? String(res.teacher.tid) : '');
+        setSummary(res.summary ?? []);
+        setLog(res.log ?? []);
+        markHasData();
+      } catch {
+        setSummary([]);
+        setLog([]);
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const headerLabel =
     teacherName && teacherId ? `${teacherName} (T${teacherId})` : teacherName || 'Your attendance';
@@ -130,8 +134,8 @@ export default function MyAttendanceScreen() {
       title="My Attendance"
       subtitle={headerLabel}
       onBack={() => navigation.navigate('AttendanceHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       {loading && summary.length === 0 && log.length === 0 ? (
         <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} />
       ) : (

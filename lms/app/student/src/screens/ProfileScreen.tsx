@@ -49,7 +49,7 @@ export default function ProfileScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   async function save() {
     if (!name.trim()) {

@@ -12,6 +12,7 @@ import { PRIMARY } from '../config';
 import { AttendanceStackParamList } from '../navigation/types';
 import { theme } from '../ui/theme';
 import { formatStudentDisplayId, formatStudentSubtitle } from '../utils/student';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 type StudentRow = {
   id: string | number;
@@ -55,6 +56,14 @@ export default function StudentAttendanceListScreen() {
       setLoadingStudents(false);
     }
   }, [course]);
+
+  const refreshStudents = useCallback(() => {
+    if (loadedCourse) {
+      loadStudents();
+    }
+  }, [loadedCourse, loadStudents]);
+
+  useRefreshOnFocus(refreshStudents);
 
   return (
     <ScreenLayout

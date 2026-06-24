@@ -12,6 +12,8 @@ import { AttendanceStackParamList } from '../navigation/types';
 import { theme } from '../ui/theme';
 import { useThemeColors } from '../ui/useThemeColors';
 import { formatStudentBatch } from '../utils/student';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 type AttendanceRecord = {
   date: string;
@@ -75,7 +77,7 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
 export default function ViewAttendanceScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AttendanceStackParamList>>();
   const colors = useThemeColors();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<AttendanceRecord[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -87,26 +89,28 @@ export default function ViewAttendanceScreen() {
     { label: 'All months', value: 'all' },
   ]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.attendance(monthFilter);
-      setItems(res.records ?? []);
-      const months: string[] = res.available_months ?? [];
-      setMonthOptions([
-        { label: 'All months', value: 'all' },
-        ...months.map((month: string) => ({ label: formatMonthLabel(month), value: month })),
-      ]);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [monthFilter]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.attendance(monthFilter);
+        setItems(res.records ?? []);
+        const months: string[] = res.available_months ?? [];
+        setMonthOptions([
+          { label: 'All months', value: 'all' },
+          ...months.map((month: string) => ({ label: formatMonthLabel(month), value: month })),
+        ]);
+        markHasData();
+      } catch {
+        setItems([]);
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData, monthFilter],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const periodLabel = formatMonthLabel(monthFilter);
 
@@ -174,8 +178,8 @@ export default function ViewAttendanceScreen() {
       title="View Attendance"
       subtitle={periodLabel}
       onBack={() => navigation.navigate('AttendanceHub')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Pressable
         style={({ pressed }) => [styles.summaryLink, pressed && styles.summaryLinkPressed]}
         onPress={() => navigation.navigate('StudentAttendanceList')}>

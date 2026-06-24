@@ -14,29 +14,33 @@ import {
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { StudentsStackParamList } from '../navigation/types';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 import { formatStudentBatch, formatStudentDisplayId } from '../utils/student';
 
 type Props = NativeStackScreenProps<StudentsStackParamList, 'StudentDetail'>;
 
 export default function StudentDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [data, setData] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setData(await LmsApi.student(id));
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Could not load student');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        setData(await LmsApi.student(id));
+        markHasData();
+      } catch (e: any) {
+        Alert.alert('Error', e?.message ?? 'Could not load student');
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, id, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const s = data?.student;
   const batch = formatStudentBatch(s?.batch);
@@ -53,8 +57,8 @@ export default function StudentDetailScreen({ navigation, route }: Props) {
     <ScreenLayout
       title="Student profile"
       onBack={() => navigation.goBack()}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       {loading && !s ? <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} /> : null}
       {s ? (
         <>

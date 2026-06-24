@@ -1,9 +1,11 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { Appearance, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { PRIMARY } from './src/config';
+
+Appearance.setColorScheme('light');
 
 function App() {
   return (

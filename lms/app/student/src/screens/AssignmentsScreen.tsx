@@ -33,7 +33,7 @@ export default function AssignmentsScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   return (
     <ScreenLayout

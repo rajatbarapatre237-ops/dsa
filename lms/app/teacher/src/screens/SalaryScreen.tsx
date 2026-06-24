@@ -8,34 +8,36 @@ import ListRow from '../components/ListRow';
 import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 export default function SalaryScreen() {
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res: any = await LmsApi.salary();
-      setItems(res.salary ?? []);
-    } catch (e: any) {
-      setItems([]);
-      // axios wrapper rejects with { message } - fall back to generic message.
-      const msg = e?.message ?? 'Could not load salary records';
-      setError(msg);
-      // Avoid unhandled promise toast; keep user informed.
-      Alert.alert('Error', msg);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      setError(null);
+      try {
+        const res: any = await LmsApi.salary();
+        setItems(res.salary ?? []);
+        markHasData();
+      } catch (e: any) {
+        setItems([]);
+        const msg = e?.message ?? 'Could not load salary records';
+        setError(msg);
+        Alert.alert('Error', msg);
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const latest = useMemo(() => items?.[0] ?? null, [items]);
 
@@ -44,8 +46,8 @@ export default function SalaryScreen() {
       title="View Salary"
       subtitle="Account"
       onBack={() => navigation.navigate('AccountHome')}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       <Card>
         {latest ? (
           <>

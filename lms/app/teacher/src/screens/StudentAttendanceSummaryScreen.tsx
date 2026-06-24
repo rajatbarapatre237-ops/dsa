@@ -7,7 +7,8 @@ import { LmsApi } from '../api/lms';
 import { PRIMARY } from '../config';
 import { AttendanceStackParamList } from '../navigation/types';
 import { theme } from '../ui/theme';
-import { formatStudentBatch, formatStudentDisplayId } from '../utils/student';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 type SummaryRow = {
   sid?: string | number;
@@ -49,26 +50,28 @@ function SummaryTableRow({ row, last }: { row: SummaryRow; last?: boolean }) {
 
 export default function StudentAttendanceSummaryScreen({ navigation, route }: Props) {
   const { id, name } = route.params;
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [summary, setSummary] = useState<SummaryRow[]>([]);
   const [studentName, setStudentName] = useState(name ?? '');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.studentAttendanceSummary(id);
-      setSummary(res.summary ?? []);
-      setStudentName(res.student?.name ?? name ?? '');
-    } catch {
-      setSummary([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, name]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.studentAttendanceSummary(id);
+        setSummary(res.summary ?? []);
+        setStudentName(res.student?.name ?? name ?? '');
+        markHasData();
+      } catch {
+        setSummary([]);
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, id, markHasData, name],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const displayId = formatStudentDisplayId(id) ?? id;
 
@@ -77,8 +80,8 @@ export default function StudentAttendanceSummaryScreen({ navigation, route }: Pr
       title="Attendance summary"
       subtitle={`${displayId}${studentName ? ` · ${studentName}` : ''}`}
       onBack={() => navigation.goBack()}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       {loading && summary.length === 0 ? (
         <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} />
       ) : (

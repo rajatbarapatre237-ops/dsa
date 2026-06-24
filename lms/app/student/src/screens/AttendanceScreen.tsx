@@ -15,11 +15,14 @@ import {
 } from '../components/StudentHubUi';
 import { useStudentContext } from '../hooks/useStudentContext';
 import { LmsApi } from '../api/lms';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 export default function AttendanceScreen() {
   const navigation = useNavigation<any>();
   const ctx = useStudentContext();
-  const [loading, setLoading] = useState(true);
+  const { refresh: refreshContext, refreshing: ctxRefreshing } = ctx;
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [records, setRecords] = useState<any[]>([]);
   const [summary, setSummary] = useState<any[]>([]);
 
@@ -29,30 +32,35 @@ export default function AttendanceScreen() {
     [],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await Promise.allSettled([LmsApi.attendance(month)]);
-      if (result[0].status === 'fulfilled') {
-        const data = result[0].value;
-        setSummary(data.summary ?? []);
-        setRecords(data.records ?? []);
-      } else {
-        setSummary([]);
-        setRecords([]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const result = await Promise.allSettled([LmsApi.attendance(month)]);
+        if (result[0].status === 'fulfilled') {
+          const data = result[0].value;
+          setSummary(data.summary ?? []);
+          setRecords(data.records ?? []);
+        } else {
+          setSummary([]);
+          setRecords([]);
+        }
+        markHasData();
+      } finally {
+        endLoad();
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+    },
+    [beginLoad, endLoad, markHasData, month],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  const refresh = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      await Promise.all([refreshContext(options), load(options)]);
+    },
+    [refreshContext, load],
+  );
 
-  const refresh = useCallback(async () => {
-    await Promise.all([ctx.refresh(), load()]);
-  }, [ctx, load]);
+  useRefreshOnFocus(refresh);
 
   const monthRecords = useMemo(() => recordsForMonth(records, month), [records, month]);
   const attendance = useMemo(() => {
@@ -71,8 +79,8 @@ export default function AttendanceScreen() {
       title="Attendance"
       subtitle="Monthly history"
       onBack={() => navigation.navigate('AcademicsHub')}
-      refreshing={loading || ctx.loading}
-      onRefresh={refresh}>
+      refreshing={refreshing || ctxRefreshing}
+      onRefresh={() => refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}

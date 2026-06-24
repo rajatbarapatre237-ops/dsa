@@ -1,13 +1,15 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useStudentContext } from './useStudentContext';
 
 export function useRefreshStudentOnFocus() {
   const { refresh } = useStudentContext();
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
-    }, [refresh]),
+      refreshRef.current({ showRefresh: false });
+    }, []),
   );
 }

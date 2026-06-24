@@ -50,7 +50,7 @@ export default function AttendanceHubScreen() {
     [beginLoad, endLoad, markHasData, month],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const child = dashboard?.child;
   const att = dashboard?.today_attendance;

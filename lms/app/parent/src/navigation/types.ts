@@ -3,6 +3,11 @@ export type RootStackParamList = {
   Main: undefined;
 };
 
+export type HomeStackParamList = {
+  HomeHub: undefined;
+  Transactions: undefined;
+};
+
 export type AttendanceStackParamList = {
   AttendanceHub: undefined;
   TodayAttendance: undefined;

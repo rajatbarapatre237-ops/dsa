@@ -51,6 +51,7 @@ async function syncStoredUserName(profile: Record<string, unknown> | null) {
 
 export function StudentContextProvider({ children }: { children: React.ReactNode }) {
   const hasDataRef = useRef(false);
+  const inFlightRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [storedUser, setStoredUser] = useState<StoredStudentUser | null>(null);
@@ -65,12 +66,11 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
 
   const load = useCallback(
     async (options?: LoadOptions) => {
-      if (hasDataRef.current) {
-        if (options?.showRefresh) {
-          setRefreshing(true);
-        }
-      } else {
+      inFlightRef.current += 1;
+      if (!hasDataRef.current) {
         setLoading(true);
+      } else if (options?.showRefresh) {
+        setRefreshing(true);
       }
 
       try {
@@ -122,8 +122,11 @@ export function StudentContextProvider({ children }: { children: React.ReactNode
 
         hasDataRef.current = true;
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+        if (inFlightRef.current === 0) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [month],

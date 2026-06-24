@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { ActionCard } from '../components/Card';
-import { AttendanceOverviewCard, HeroCard, SectionTitle } from '../components/DashboardUi';
+import { AttendanceOverviewCard, HeroCard, PendingFeesCard, SectionTitle } from '../components/DashboardUi';
 import { formatStudentDisplayId } from '../utils/studentId';
 import { LmsApi } from '../api/lms';
 import { APP_SUBTITLE } from '../config';
@@ -29,10 +29,13 @@ export default function HomeScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const child = data?.child;
   const att = data?.today_attendance;
+  const totalFees = Number(child?.course_fees ?? 0);
+  const balance = Number(child?.balance_fees ?? 0);
+  const paid = Math.max(0, totalFees - balance);
 
   return (
     <ScreenLayout
@@ -48,6 +51,14 @@ export default function HomeScreen() {
           { label: formatStudentDisplayId(child?.id) ?? 'ID —', icon: 'card-outline' },
           { label: child?.course_name ?? 'Course —', icon: 'school-outline' },
         ]}
+      />
+
+      <SectionTitle>Fees</SectionTitle>
+      <PendingFeesCard
+        totalFees={totalFees}
+        balance={balance}
+        paid={paid}
+        onPress={() => navigation.navigate('Transactions')}
       />
 
       <AttendanceOverviewCard

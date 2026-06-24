@@ -83,7 +83,8 @@ mkdir -p \
   "$STAGING/storage/framework/cache/data" \
   "$STAGING/storage/framework/sessions" \
   "$STAGING/storage/framework/views" \
-  "$STAGING/storage/app/public/assignments"
+  "$STAGING/storage/app/public/assignments" \
+  "$STAGING/storage/app/public/notes"
 
 cd "$ROOT/.deploy-staging"
 zip -rq "$OUT" lms-api -x "*.DS_Store"

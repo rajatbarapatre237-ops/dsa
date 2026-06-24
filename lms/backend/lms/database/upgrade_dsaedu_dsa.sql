@@ -17,6 +17,12 @@ SET `content_kind` = 'assignment'
 WHERE `content_kind` = '';
 
 -- ---------------------------------------------------------------------------
+-- 1b) assignement — multi-file bundles need TEXT in document column
+-- ---------------------------------------------------------------------------
+ALTER TABLE `assignement`
+  MODIFY `document` TEXT NOT NULL;
+
+-- ---------------------------------------------------------------------------
 -- 2) contact_us — read flag + timestamps (Laravel migration 2026_06_06)
 -- ---------------------------------------------------------------------------
 ALTER TABLE `contact_us`

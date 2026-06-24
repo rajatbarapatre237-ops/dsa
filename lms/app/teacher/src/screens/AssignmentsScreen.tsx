@@ -33,6 +33,7 @@ export default function AssignmentsScreen() {
 
   const title = isNote ? 'Notes' : 'Assignments';
   const addRoute = isNote ? 'AddNote' : 'AddAssignment';
+  const editRoute = isNote ? 'EditNote' : 'EditAssignment';
 
   const load = useCallback(
     async (options?: { showRefresh?: boolean }) => {
@@ -48,7 +49,7 @@ export default function AssignmentsScreen() {
     [beginLoad, contentKind, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   async function toggleStatus(item: any, on: boolean) {
     try {
@@ -118,10 +119,18 @@ export default function AssignmentsScreen() {
                     trackColor={{ true: PRIMARY, false: '#cbd5e1' }}
                   />
                 </View>
-                <Pressable style={styles.deleteBtn} onPress={() => confirmDelete(a)}>
-                  <AppIcon name="trash-outline" size={16} color={theme.danger} />
-                  <Text style={[styles.deleteText, platformWeight('700')]}>Delete</Text>
-                </Pressable>
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={styles.editBtn}
+                    onPress={() => navigation.navigate(editRoute, { id: a.id })}>
+                    <AppIcon name="create-outline" size={16} color={PRIMARY} />
+                    <Text style={[styles.editText, platformWeight('700')]}>Edit</Text>
+                  </Pressable>
+                  <Pressable style={styles.deleteBtn} onPress={() => confirmDelete(a)}>
+                    <AppIcon name="trash-outline" size={16} color={theme.danger} />
+                    <Text style={[styles.deleteText, platformWeight('700')]}>Delete</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           )}
@@ -160,6 +169,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   toggleLabel: { fontSize: 13, color: theme.muted },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  editText: { color: PRIMARY, fontSize: 13 },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',

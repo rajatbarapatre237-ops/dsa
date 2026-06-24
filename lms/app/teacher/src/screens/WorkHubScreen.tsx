@@ -57,7 +57,7 @@ export default function WorkHubScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const activeAssignments = assignments.filter(
     a => isActiveAssignment(a) && isMeaningfulAssignment(a) && contentKindOf(a) === 'assignment',

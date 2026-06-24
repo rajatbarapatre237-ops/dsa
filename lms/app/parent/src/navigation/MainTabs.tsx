@@ -3,6 +3,7 @@ import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
+import TransactionsScreen from '../screens/TransactionsScreen';
 import AttendanceHubScreen from '../screens/AttendanceHubScreen';
 import TodayAttendanceScreen from '../screens/TodayAttendanceScreen';
 import MonthlyAttendanceScreen from '../screens/MonthlyAttendanceScreen';
@@ -36,6 +37,15 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
       size={22}
       color={focused ? PRIMARY : '#94a3b8'}
     />
+  );
+}
+
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="HomeHub">
+      <Stack.Screen name="HomeHub" component={HomeScreen} />
+      <Stack.Screen name="Transactions" component={TransactionsScreen} />
+    </Stack.Navigator>
   );
 }
 
@@ -84,7 +94,7 @@ export default function MainTabs() {
         tabBarIconStyle: Platform.OS === 'android' ? styles.tabBarIconAndroid : undefined,
         tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
       })}>
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeStack} listeners={resetStackOnTabPress()} />
       <Tab.Screen
         name="Attendance"
         component={AttendanceStack}

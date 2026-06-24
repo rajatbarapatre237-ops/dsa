@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenLayout from '../components/ScreenLayout';
 import { SectionHeader, SectionTitle, StudentContextCard } from '../components/DashboardUi';
-import { AssignmentsSummaryCard } from '../components/AssignmentUi';
+import { WorkSummaryCardsRow } from '../components/AssignmentUi';
 import { ExploreAssignmentsTiles, RecentAssignmentsCard } from '../components/StudentHubUi';
 import { useStudentContext } from '../hooks/useStudentContext';
 import { useRefreshStudentOnFocus } from '../hooks/useRefreshStudentOnFocus';
@@ -44,7 +44,7 @@ export default function AssignmentsHubScreen() {
         monthRecords={ctx.monthRecords}
       />
 
-      <AssignmentsSummaryCard count={assignments.length} label="Assignments available" />
+      <WorkSummaryCardsRow assignmentsCount={assignments.length} notesCount={notes.length} />
 
       <SectionTitle>Explore by subject</SectionTitle>
       <ExploreAssignmentsTiles

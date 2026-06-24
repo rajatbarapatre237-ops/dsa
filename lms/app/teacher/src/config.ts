@@ -58,6 +58,9 @@ function localApiBaseUrl(): string {
 
 export const API_BASE_URL = USE_LIVE_API ? LIVE_API_BASE_URL : localApiBaseUrl();
 
+/** Web routes (public file downloads) share the same host as the API. */
+export const PUBLIC_BASE_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+
 export const LOGIN_FIELDS = {
   idLabel: 'Email',
   idPlaceholder: 'teacher@example.com',

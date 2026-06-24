@@ -15,6 +15,7 @@ import { Card } from '../components/Card';
 import {
   AssignmentDetailRow,
   AssignmentHeroCard,
+  AssignmentFilesList,
 } from '../components/AssignmentUi';
 import { LmsApi } from '../api/lms';
 import { useStudentContext } from '../hooks/useStudentContext';
@@ -22,6 +23,8 @@ import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 import AppIcon from '../components/AppIcon';
 import { AssignmentsStackParamList } from '../navigation/types';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 type Props = NativeStackScreenProps<AssignmentsStackParamList, 'AssignmentDetail'>;
 
@@ -35,27 +38,31 @@ function normalizeUrl(value?: string | null) {
 export default function AssignmentDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
   const ctx = useStudentContext();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [item, setItem] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.assignment(id);
-      setItem(res.assignment);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Could not load assignment');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.assignment(id);
+        setItem(res.assignment);
+        markHasData();
+      } catch (e: any) {
+        Alert.alert('Error', e?.message ?? 'Could not load assignment');
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, id, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const isLink = String(item?.type ?? '').toLowerCase() === 'link';
   const linkUrl = normalizeUrl(item?.link_url ?? item?.document);
+  const files = (item?.files ?? []) as { index: number; name: string }[];
+  const fileCount = Number(item?.file_count ?? files.length);
 
   async function openLink() {
     if (!linkUrl) {
@@ -74,8 +81,8 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
       title="Assignment"
       subtitle={item?.document_name ?? 'Details'}
       onBack={() => navigation.goBack()}
-      refreshing={loading}
-      onRefresh={load}>
+      refreshing={refreshing}
+      onRefresh={() => load({ showRefresh: true })}>
       {loading && !item ? <ActivityIndicator color={PRIMARY} style={styles.loader} /> : null}
       {item ? (
         <>
@@ -88,13 +95,20 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
           <Card title="Details">
             <AssignmentDetailRow label="Course" value={ctx.course} />
             <AssignmentDetailRow label="Batch" value={item.batch_name ?? item.batch} />
-            <AssignmentDetailRow label="Type" value={isLink ? 'Link' : 'File'} />
+            <AssignmentDetailRow label="Type" value={isLink ? 'Link' : fileCount > 1 ? `${fileCount} files` : 'File'} />
             {isLink ? (
               <AssignmentDetailRow label="Link" value={item.link_url ?? item.document} />
-            ) : (
-              <AssignmentDetailRow label="File" value={item.document} />
-            )}
+            ) : fileCount <= 1 ? (
+              <AssignmentDetailRow label="File" value={item.file_name ?? item.document} />
+            ) : null}
           </Card>
+
+          {!isLink && files.length > 0 ? (
+            <AssignmentFilesList
+              files={files}
+              onOpen={index => navigation.navigate('AssignmentFile', { id, index })}
+            />
+          ) : null}
 
           {isLink ? (
             <View style={styles.actions}>
@@ -114,14 +128,14 @@ export default function AssignmentDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.secondaryBtnText}>Share link</Text>
               </Pressable>
             </View>
-          ) : (
+          ) : fileCount === 1 ? (
             <Pressable
               style={styles.primaryBtn}
-              onPress={() => navigation.navigate('AssignmentFile', { id })}>
+              onPress={() => navigation.navigate('AssignmentFile', { id, index: files[0]?.index ?? 0 })}>
               <AppIcon name="document-text-outline" family="ionicons" size={18} color="#fff" />
               <Text style={styles.primaryBtnText}>View file in app</Text>
             </Pressable>
-          )}
+          ) : null}
         </>
       ) : null}
     </ScreenLayout>

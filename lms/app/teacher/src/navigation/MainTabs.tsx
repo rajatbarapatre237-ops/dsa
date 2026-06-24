@@ -83,6 +83,8 @@ function WorkStack() {
       <Stack.Screen name="NotesList" component={AssignmentsScreen} />
       <Stack.Screen name="AddAssignment" component={AddAssignmentScreen} />
       <Stack.Screen name="AddNote" component={AddAssignmentScreen} />
+      <Stack.Screen name="EditAssignment" component={AddAssignmentScreen} />
+      <Stack.Screen name="EditNote" component={AddAssignmentScreen} />
       <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
       <Stack.Screen name="AssignmentFile" component={AssignmentFileScreen} />
       <Stack.Screen name="ClassTests" component={ClassTestsScreen} />

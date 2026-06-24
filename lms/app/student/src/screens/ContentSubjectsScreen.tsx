@@ -31,7 +31,7 @@ export default function ContentSubjectsScreen() {
       beginLoad(options);
       try {
         const res: any = await LmsApi.contentSubjects(contentKind);
-        setSubjects(res.subjects ?? []);
+        setSubjects((res.subjects ?? []).filter((s: SubjectRow) => s.item_count > 0));
         markHasData();
       } finally {
         endLoad();
@@ -40,7 +40,7 @@ export default function ContentSubjectsScreen() {
     [beginLoad, contentKind, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const title = isNote ? 'Notes by subject' : 'Assignments by subject';
 

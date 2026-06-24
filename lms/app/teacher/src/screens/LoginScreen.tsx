@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -25,14 +24,15 @@ import {
 import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
 import { platformWeight } from '../ui/typography';
 import { RootStackParamList } from '../navigation/types';
+import AppIcon from '../components/AppIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen(_props: Props) {
   const colors = useThemeColors();
-  const isDark = useColorScheme() === 'dark';
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -83,19 +83,35 @@ export default function LoginScreen(_props: Props) {
               onChangeText={setId}
               autoCapitalize={LOGIN_FIELDS.useEmail ? 'none' : 'characters'}
               keyboardType={LOGIN_FIELDS.useEmail ? 'email-address' : 'default'}
-              keyboardAppearance={isDark ? 'dark' : 'light'}
+              keyboardAppearance="light"
               autoCorrect={false}
             />
             <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <TextInput
-              style={[textInputStyle(colors), styles.inputSpacing]}
-              placeholder="Password"
-              placeholderTextColor={colors.muted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              keyboardAppearance={isDark ? 'dark' : 'light'}
-            />
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={[textInputStyle(colors), styles.passwordInput]}
+                placeholder="Password"
+                placeholderTextColor={colors.muted}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                keyboardAppearance="light"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Pressable
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword(v => !v)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+                <AppIcon
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={colors.muted}
+                />
+              </Pressable>
+            </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable
               style={[styles.btn, loading && styles.btnDisabled]}
@@ -136,6 +152,15 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 13, ...platformWeight('600'), marginBottom: 6 },
   inputSpacing: { marginBottom: 14 },
+  passwordWrap: { position: 'relative', marginBottom: 14 },
+  passwordInput: { paddingRight: 48 },
+  eyeBtn: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
   btn: {
     backgroundColor: PRIMARY,
     borderRadius: 10,

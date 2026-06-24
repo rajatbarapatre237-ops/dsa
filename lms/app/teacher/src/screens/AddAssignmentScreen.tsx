@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, Pressable, StyleSheet, Alert, View, Image, ScrollView } from 'react-native';
+import { Text, Pressable, StyleSheet, Alert, View, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
@@ -11,6 +11,7 @@ import { PRIMARY } from '../config';
 import { useThemeColors } from '../ui/useThemeColors';
 import { WorkStackParamList } from '../navigation/types';
 import {
+  normalizeUploadFile,
   pickImagesFromGallery,
   takePhoto,
   type PickedFile,
@@ -18,15 +19,21 @@ import {
 
 type AssignType = 'link' | 'file';
 type ContentKind = 'assignment' | 'note';
+type ScreenName = 'AddAssignment' | 'AddNote' | 'EditAssignment' | 'EditNote';
 
 export default function AddAssignmentScreen() {
   const navigation = useNavigation();
-  const route = useRoute<RouteProp<WorkStackParamList, 'AddAssignment' | 'AddNote'>>();
+  const route = useRoute<RouteProp<WorkStackParamList, ScreenName>>();
   const colors = useThemeColors();
+  const isEdit = route.name === 'EditAssignment' || route.name === 'EditNote';
+  const editId = isEdit ? route.params.id : undefined;
   const contentKind: ContentKind =
-    route.name === 'AddNote' || route.params?.contentKind === 'note' ? 'note' : 'assignment';
+    route.name === 'AddNote' || route.name === 'EditNote' || route.params?.contentKind === 'note'
+      ? 'note'
+      : 'assignment';
   const isNote = contentKind === 'note';
 
+  const [loading, setLoading] = useState(isEdit);
   const [batches, setBatches] = useState<{ label: string; value: string }[]>([]);
   const [subjects, setSubjects] = useState<{ label: string; value: string }[]>([]);
   const [type, setType] = useState<AssignType>(isNote ? 'file' : 'link');
@@ -35,9 +42,14 @@ export default function AddAssignmentScreen() {
   const [documentName, setDocumentName] = useState('');
   const [link, setLink] = useState('');
   const [files, setFiles] = useState<PickedFile[]>([]);
+  const [currentFileName, setCurrentFileName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
-  const screenTitle = useMemo(() => (isNote ? 'Add Note' : 'Add Assignment'), [isNote]);
+  const screenTitle = useMemo(() => {
+    if (isEdit) return isNote ? 'Edit Note' : 'Edit Assignment';
+    return isNote ? 'Add Note' : 'Add Assignment';
+  }, [isEdit, isNote]);
 
   useEffect(() => {
     LmsApi.allBatches()
@@ -53,9 +65,31 @@ export default function AddAssignmentScreen() {
   }, []);
 
   useEffect(() => {
+    if (!isEdit || !editId) return;
+    setLoading(true);
+    LmsApi.assignment(editId)
+      .then((res: any) => {
+        const item = res.assignment;
+        if (!item) return;
+        const itemType = String(item.type ?? 'file').toLowerCase() === 'link' ? 'link' : 'file';
+        setType(itemType);
+        setBatch(String(item.batch_name ?? ''));
+        setSubjectId(item.subject_id != null ? String(item.subject_id) : '');
+        setDocumentName(String(item.document_name ?? ''));
+        if (itemType === 'link') {
+          setLink(String(item.link_url ?? item.document ?? ''));
+        } else {
+          setCurrentFileName(String(item.document ?? ''));
+        }
+      })
+      .catch((e: any) => Alert.alert('Error', e?.message ?? 'Could not load'))
+      .finally(() => setLoading(false));
+  }, [editId, isEdit]);
+
+  useEffect(() => {
     if (!batch) {
       setSubjects([]);
-      setSubjectId('');
+      if (!isEdit) setSubjectId('');
       return;
     }
     LmsApi.subjectsForBatch(batch)
@@ -73,11 +107,21 @@ export default function AddAssignmentScreen() {
         setSubjects([]);
         Alert.alert('Subjects', e?.message ?? 'Could not load subjects for this batch');
       });
-  }, [batch]);
+  }, [batch, isEdit]);
 
   function addFiles(picked: PickedFile[]) {
     if (!picked.length) return;
-    setFiles(prev => [...prev, ...picked]);
+    const normalized = picked.map(normalizeUploadFile);
+    setFiles(prev => {
+      const merged = isEdit ? [normalized[0]] : [...prev, ...normalized];
+      const seen = new Set<string>();
+      return merged.filter(file => {
+        const id = `${file.uri}|${file.name}`;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    });
   }
 
   function removeFile(key: string) {
@@ -90,19 +134,39 @@ export default function AddAssignmentScreen() {
 
   async function pickFile() {
     try {
-      const { pick, types } = await import('@react-native-documents/picker');
+      const { pick, types, keepLocalCopy } = await import('@react-native-documents/picker');
       const results = await pick({
         type: [types.pdf, types.plainText, types.images, types.allFiles],
-        allowMultiSelection: true,
+        allowMultiSelection: !isEdit,
       });
-      const picked = results
-        .filter(r => r.uri)
-        .map((r, index) => ({
-          uri: r.uri!,
-          name: r.name ?? (isNote ? `note-${index + 1}` : `assignment-${index + 1}`),
-          type: r.type ?? 'application/octet-stream',
-          key: `${r.uri}-${r.name}-${Date.now()}-${index}`,
-        }));
+      const withUri = results.filter(r => r.uri);
+      if (!withUri.length) return;
+
+      const copyInputs = withUri.map((r, index) => ({
+        uri: r.uri!,
+        fileName: r.name ?? (isNote ? `note-${index + 1}.pdf` : `assignment-${index + 1}.pdf`),
+        ...(r.convertibleToMimeTypes?.[0]
+          ? { convertVirtualFileToType: r.convertibleToMimeTypes[0] }
+          : {}),
+      }));
+
+      const copies = await keepLocalCopy({
+        destination: 'cachesDirectory',
+        files: copyInputs as [(typeof copyInputs)[0], ...typeof copyInputs],
+      });
+
+      const picked = withUri.map((r, index) => {
+        const copy = copies[index];
+        const uri =
+          copy?.status === 'success' && copy.localUri ? copy.localUri : (r.uri as string);
+        const name = r.name ?? (isNote ? `note-${index + 1}.pdf` : `assignment-${index + 1}.pdf`);
+        return normalizeUploadFile({
+          uri,
+          name,
+          type: r.type ?? r.nativeType ?? 'application/octet-stream',
+          key: `${uri}-${name}-${Date.now()}-${index}`,
+        });
+      });
       addFiles(picked);
     } catch (e: any) {
       const mod = await import('@react-native-documents/picker');
@@ -119,24 +183,55 @@ export default function AddAssignmentScreen() {
     addFiles(await takePhoto());
   }
 
-  async function uploadFile(
-    file: PickedFile,
-    title: string,
+  async function uploadFiles(
+    items: PickedFile[],
+    baseTitle: string,
     subject: { label: string; value: string } | undefined,
   ) {
-    const form = new FormData();
-    form.append('type', 'file');
-    form.append('content_kind', contentKind);
-    form.append('batch_name', batch);
-    form.append('document_name', title);
-    form.append('subject_id', String(subjectId));
-    if (subject?.label) form.append('subject_name', subject.label);
-    form.append('file', {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
-    } as any);
-    await LmsApi.createAssignmentFile(form);
+    setUploadProgress(`Preparing ${items.length} file${items.length === 1 ? '' : 's'}…`);
+    const result = (await LmsApi.createAssignmentFilesUpload(
+      items,
+      {
+        content_kind: contentKind,
+        batch_name: batch,
+        document_name: baseTitle,
+        subject_id: Number(subjectId),
+        subject_name: subject?.label,
+      },
+      (current, total) => {
+        setUploadProgress(`Uploading ${current} of ${total}…`);
+      },
+    )) as { message?: string; count?: number; file_count?: number };
+    return result;
+  }
+
+  async function saveEdit(subject: { label: string; value: string } | undefined) {
+    if (type === 'link') {
+      await LmsApi.updateAssignment(editId!, {
+        batch_name: batch,
+        document_name: documentName.trim(),
+        subject_id: Number(subjectId),
+        subject_name: subject?.label,
+        link: link.trim(),
+      });
+    } else if (files.length) {
+      await LmsApi.updateAssignmentFileUpload(editId!, files[0], {
+        batch_name: batch,
+        document_name: documentName.trim(),
+        subject_id: Number(subjectId),
+        subject_name: subject?.label,
+      });
+    } else {
+      await LmsApi.updateAssignment(editId!, {
+        batch_name: batch,
+        document_name: documentName.trim(),
+        subject_id: Number(subjectId),
+        subject_name: subject?.label,
+      });
+    }
+    Alert.alert('Success', isNote ? 'Note updated' : 'Assignment updated', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
   }
 
   async function save() {
@@ -149,8 +244,19 @@ export default function AddAssignmentScreen() {
       return;
     }
     setSaving(true);
+    setUploadProgress('');
     try {
       const subject = subjects.find(s => s.value === subjectId);
+
+      if (isEdit) {
+        if (type === 'link' && !link.trim()) {
+          Alert.alert('Required', 'Enter link URL');
+          return;
+        }
+        await saveEdit(subject);
+        return;
+      }
+
       const subjectPayload = {
         subject_id: Number(subjectId),
         subject_name: subject?.label,
@@ -174,11 +280,23 @@ export default function AddAssignmentScreen() {
           Alert.alert('Required', 'Add at least one photo or file to upload');
           return;
         }
-        const baseTitle = documentName.trim();
-        for (let i = 0; i < files.length; i++) {
-          const title = files.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle;
-          await uploadFile(files[i], title, subject);
+        if (files.length > 20) {
+          Alert.alert('Too many files', 'You can upload up to 20 files at a time.');
+          return;
         }
+        const baseTitle = documentName.trim();
+        const result = await uploadFiles(files, baseTitle, subject);
+        const successMessage =
+          result?.message ??
+          (files.length > 1
+            ? `${isNote ? 'Note' : 'Assignment'} added with ${files.length} files`
+            : isNote
+              ? 'Note added'
+              : 'Assignment added');
+        Alert.alert('Success', successMessage, [
+          { text: 'OK', onPress: () => navigation.navigate('WorkHub' as never) },
+        ]);
+        return;
       }
       Alert.alert('Success', isNote ? 'Note added' : 'Assignment added', [
         { text: 'OK', onPress: () => navigation.navigate('WorkHub' as never) },
@@ -187,7 +305,16 @@ export default function AddAssignmentScreen() {
       Alert.alert('Error', e?.message ?? 'Could not save');
     } finally {
       setSaving(false);
+      setUploadProgress('');
     }
+  }
+
+  if (loading) {
+    return (
+      <ScreenLayout title={screenTitle} subtitle="Loading…" onBack={() => navigation.goBack()}>
+        <ActivityIndicator color={PRIMARY} style={styles.loader} />
+      </ScreenLayout>
+    );
   }
 
   return (
@@ -196,7 +323,7 @@ export default function AddAssignmentScreen() {
       subtitle={isNote ? 'Upload class notes by subject' : 'Share homework by subject'}
       onBack={() => navigation.goBack()}>
       <Card>
-        {!isNote ? (
+        {!isNote && !isEdit ? (
           <FormPicker
             label="Type"
             value={type}
@@ -225,7 +352,12 @@ export default function AddAssignmentScreen() {
           />
         ) : (
           <View style={styles.uploadSection}>
-            <Text style={[styles.uploadLabel, { color: colors.muted }]}>Upload photo or file</Text>
+            <Text style={[styles.uploadLabel, { color: colors.muted }]}>
+              {isEdit ? 'Replace file (optional)' : 'Upload photo or file'}
+            </Text>
+            {isEdit && currentFileName && !files.length ? (
+              <Text style={[styles.currentFile, { color: colors.text }]}>Current: {currentFileName}</Text>
+            ) : null}
             <View style={styles.uploadRow}>
               <Pressable
                 style={[styles.uploadTile, { backgroundColor: colors.primarySoft, borderColor: colors.border }]}
@@ -253,7 +385,7 @@ export default function AddAssignmentScreen() {
                   {files.length} file{files.length === 1 ? '' : 's'} selected
                 </Text>
                 <Pressable onPress={clearFiles} hitSlop={8}>
-                  <Text style={styles.clearAll}>Clear all</Text>
+                  <Text style={styles.clearAll}>Clear</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -285,13 +417,27 @@ export default function AddAssignmentScreen() {
               </ScrollView>
             ) : (
               <Text style={[styles.uploadHint, { color: colors.muted }]}>
-                Tap Camera, Gallery, or File. You can add multiple items.
+                {isEdit
+                  ? 'Leave empty to keep the current file, or pick a new one to replace it.'
+                  : 'Tap Camera, Gallery, or File. Add multiple items (up to 20) and upload together.'}
               </Text>
             )}
           </View>
         )}
         <Pressable style={[styles.saveBtn, saving && styles.disabled]} onPress={save} disabled={saving}>
-          <Text style={styles.saveText}>{saving ? 'Saving…' : isNote ? 'Add note' : 'Add assignment'}</Text>
+          <Text style={styles.saveText}>
+            {saving
+              ? uploadProgress || 'Saving…'
+              : isEdit
+                ? 'Save changes'
+                : isNote
+                  ? files.length > 1
+                    ? `Add note (${files.length} files)`
+                    : 'Add note'
+                  : type === 'file' && files.length > 1
+                    ? `Add assignment (${files.length} files)`
+                    : 'Add assignment'}
+          </Text>
         </Pressable>
       </Card>
     </ScreenLayout>
@@ -299,8 +445,10 @@ export default function AddAssignmentScreen() {
 }
 
 const styles = StyleSheet.create({
+  loader: { marginTop: 24 },
   uploadSection: { marginTop: 4, marginBottom: 12 },
   uploadLabel: { fontSize: 13, fontWeight: '700', marginBottom: 10 },
+  currentFile: { fontSize: 13, marginBottom: 10, fontWeight: '600' },
   uploadRow: { flexDirection: 'row', gap: 10 },
   uploadTile: {
     flex: 1,

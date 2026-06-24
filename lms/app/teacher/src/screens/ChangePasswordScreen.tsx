@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, TextInput, Pressable, StyleSheet, Alert, useColorScheme } from 'react-native';
+import { Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenLayout from '../components/ScreenLayout';
 import { Card } from '../components/Card';
@@ -11,7 +11,6 @@ import { platformWeight } from '../ui/typography';
 export default function ChangePasswordScreen() {
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
-  const isDark = useColorScheme() === 'dark';
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,7 +46,7 @@ export default function ChangePasswordScreen() {
           value={current}
           onChangeText={setCurrent}
           placeholderTextColor={colors.muted}
-          keyboardAppearance={isDark ? 'dark' : 'light'}
+          keyboardAppearance="light"
         />
         <Text style={[styles.label, { color: colors.text }]}>New password</Text>
         <TextInput
@@ -56,7 +55,7 @@ export default function ChangePasswordScreen() {
           value={next}
           onChangeText={setNext}
           placeholderTextColor={colors.muted}
-          keyboardAppearance={isDark ? 'dark' : 'light'}
+          keyboardAppearance="light"
         />
         <Pressable style={[styles.btn, loading && styles.disabled]} onPress={save} disabled={loading}>
           <Text style={styles.btnText}>{loading ? 'Saving…' : 'Update password'}</Text>

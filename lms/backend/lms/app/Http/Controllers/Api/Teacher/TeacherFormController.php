@@ -148,6 +148,57 @@ class TeacherFormController extends Controller
         return response()->json(['status' => 'success', 'tests' => $tests]);
     }
 
+    public function showClassTest(Request $request, int $id): JsonResponse
+    {
+        $test = $this->classTests->getTestRow($id);
+        if (! $test) {
+            return response()->json(['status' => 'error', 'message' => 'Test not found'], 404);
+        }
+        if (! $this->classTests->canEnterMarks($this->email($request), $test)) {
+            return response()->json(['status' => 'error', 'message' => 'Not allowed'], 403);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'test' => [
+                'id' => (int) $test->id,
+                'test_name' => $test->test_name,
+                'test_date' => $test->test_date,
+                'total_marks' => (float) $test->total_marks,
+                'passing_marks' => (float) $test->passing_marks,
+                'course_id' => (int) $test->course_id,
+                'subject_id' => (int) $test->subject_id,
+                'course_name' => $test->course_name,
+                'subject_name' => $test->subject_name,
+            ],
+        ]);
+    }
+
+    public function updateClassTest(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'test_name' => ['required', 'string', 'max:255'],
+            'test_date' => ['required', 'date'],
+            'total_marks' => ['required', 'numeric', 'min:1'],
+            'passing_marks' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $res = $this->classTests->updateTest(
+            $this->email($request),
+            $id,
+            $data['test_name'],
+            $data['test_date'],
+            (float) $data['total_marks'],
+            (float) $data['passing_marks']
+        );
+
+        if (! ($res['ok'] ?? false)) {
+            return response()->json(['status' => 'error', 'message' => $res['error'] ?? 'Failed'], 422);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Class test updated', 'id' => $res['id']]);
+    }
+
     public function createClassTest(Request $request): JsonResponse
     {
         $data = $request->validate([

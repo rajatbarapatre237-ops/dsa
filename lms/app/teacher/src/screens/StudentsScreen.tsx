@@ -118,7 +118,7 @@ export default function StudentsScreen() {
     [page, debouncedSearch, courseFilter, batchFilter, beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const hasFilters = !!(debouncedSearch || courseFilter || batchFilter);
   const rangeStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.per_page + 1;

@@ -20,6 +20,8 @@ import { PRIMARY } from '../config';
 import { theme } from '../ui/theme';
 import { useThemeColors } from '../ui/useThemeColors';
 import { WorkStackParamList } from '../navigation/types';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 type TestResult = {
   id?: number;
@@ -102,27 +104,29 @@ function ResultRow({
 export default function TestResultsScreen() {
   const colors = useThemeColors();
   const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
-  const [loading, setLoading] = useState(true);
+  const { loading, refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [items, setItems] = useState<TestResult[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [testFilter, setTestFilter] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await LmsApi.testResults();
-      setItems(res.results ?? []);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const res: any = await LmsApi.testResults();
+        setItems(res.results ?? []);
+        markHasData();
+      } catch {
+        setItems([]);
+      } finally {
+        endLoad();
+      }
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  useRefreshOnFocus(load);
 
   const testOptions = useMemo(() => {
     const names = [...new Set(items.map(r => String(r.test_name ?? '').trim()).filter(Boolean))].sort();
@@ -267,7 +271,13 @@ export default function TestResultsScreen() {
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={PRIMARY} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load({ showRefresh: true })}
+            tintColor={PRIMARY}
+          />
+        }
         initialNumToRender={20}
         maxToRenderPerBatch={25}
         windowSize={10}

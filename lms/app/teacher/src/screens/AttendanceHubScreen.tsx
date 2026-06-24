@@ -63,7 +63,7 @@ export default function AttendanceHubScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const today = localISODate(new Date());
   const todayRecords = records.filter(r => String(r.date).slice(0, 10) === today);

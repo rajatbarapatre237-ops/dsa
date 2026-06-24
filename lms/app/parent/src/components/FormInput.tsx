@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
 import { platformWeight } from '../ui/typography';
 
@@ -21,7 +21,6 @@ export function FormInput({
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   const colors = useThemeColors();
-  const isDark = useColorScheme() === 'dark';
 
   return (
     <View style={styles.wrap}>
@@ -35,7 +34,7 @@ export function FormInput({
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
-        keyboardAppearance={isDark ? 'dark' : 'light'}
+        keyboardAppearance="light"
       />
     </View>
   );

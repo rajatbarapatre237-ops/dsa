@@ -7,34 +7,42 @@ import { AssignmentDetailRow } from '../components/AssignmentUi';
 import { CourseHeroCard } from '../components/AcademicsUi';
 import { useStudentContext } from '../hooks/useStudentContext';
 import { LmsApi } from '../api/lms';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { useStaleLoad } from '../hooks/useStaleLoad';
 
 export default function CoursesScreen() {
   const navigation = useNavigation<any>();
   const ctx = useStudentContext();
-  const [loading, setLoading] = useState(true);
+  const { refresh: refreshContext, refreshing: ctxRefreshing } = ctx;
+  const { refreshing, beginLoad, endLoad, markHasData } = useStaleLoad();
   const [data, setData] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await Promise.allSettled([LmsApi.courses()]);
-      if (result[0].status === 'fulfilled') {
-        setData(result[0].value);
-      } else {
-        setData(null);
+  const load = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      beginLoad(options);
+      try {
+        const result = await Promise.allSettled([LmsApi.courses()]);
+        if (result[0].status === 'fulfilled') {
+          setData(result[0].value);
+        } else {
+          setData(null);
+        }
+        markHasData();
+      } finally {
+        endLoad();
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [beginLoad, endLoad, markHasData],
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  const refresh = useCallback(
+    async (options?: { showRefresh?: boolean }) => {
+      await Promise.all([refreshContext(options), load(options)]);
+    },
+    [refreshContext, load],
+  );
 
-  const refresh = useCallback(async () => {
-    await Promise.all([ctx.refresh(), load()]);
-  }, [ctx, load]);
+  useRefreshOnFocus(refresh);
 
   const c = data?.current_course;
   const p = data?.profile ?? ctx.profile;
@@ -48,8 +56,8 @@ export default function CoursesScreen() {
       title="Courses"
       subtitle="Your enrollment"
       onBack={() => navigation.navigate('AcademicsHub')}
-      refreshing={loading || ctx.loading}
-      onRefresh={refresh}>
+      refreshing={refreshing || ctxRefreshing}
+      onRefresh={() => refresh({ showRefresh: true })}>
       <StudentContextCard
         name={ctx.name}
         studentId={ctx.studentId}

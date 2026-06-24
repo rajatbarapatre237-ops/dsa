@@ -21,6 +21,7 @@ import { theme } from '../ui/theme';
 import { useThemeColors, textInputStyle } from '../ui/useThemeColors';
 import { platformWeight } from '../ui/typography';
 import { WorkStackParamList } from '../navigation/types';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 
 type StudentRow = {
   student_id: number;
@@ -178,10 +179,12 @@ export default function EnterClassTestMarksScreen() {
     })();
   }, [courseId, subjectId]);
 
-  const loadStudents = useCallback(async (selectedTestId?: string) => {
+  const loadStudents = useCallback(async (selectedTestId?: string, options?: { silent?: boolean }) => {
     const id = selectedTestId ?? testId;
     if (!id) {
-      Alert.alert('Select a test');
+      if (!options?.silent) {
+        Alert.alert('Select a test');
+      }
       return;
     }
     setLoading(true);
@@ -205,17 +208,27 @@ export default function EnterClassTestMarksScreen() {
       setMarksVersion(v => v + 1);
       setStudents(list);
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Load failed');
+      if (!options?.silent) {
+        Alert.alert('Error', e?.message ?? 'Load failed');
+      }
     } finally {
       setLoading(false);
     }
   }, [testId, session, batch]);
 
   useEffect(() => {
-    if (preset?.testId && preset.courseId && preset.subjectId) {
-      loadStudents(preset.testId);
+    if (preset?.testId) {
+      loadStudents(preset.testId, { silent: true });
     }
-  }, [preset?.testId, preset?.courseId, preset?.subjectId, loadStudents]);
+  }, [preset?.testId, loadStudents]);
+
+  const refreshStudents = useCallback(() => {
+    if (testId) {
+      loadStudents(testId, { silent: true });
+    }
+  }, [testId, loadStudents]);
+
+  useRefreshOnFocus(refreshStudents);
 
   async function save() {
     if (!testId) return;
@@ -289,7 +302,10 @@ export default function EnterClassTestMarksScreen() {
             onChange={setBatch}
             disabled={!courseId}
           />
-          <Pressable style={styles.btnOutline} onPress={() => loadStudents()} disabled={loading}>
+          <Pressable
+            style={styles.btnOutline}
+            onPress={() => loadStudents(undefined, { silent: false })}
+            disabled={loading}>
             {loading ? (
               <ActivityIndicator color={PRIMARY} />
             ) : (

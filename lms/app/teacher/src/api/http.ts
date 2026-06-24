@@ -20,6 +20,13 @@ export function createHttpClient(): AxiosInstance {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.data instanceof FormData) {
+      if (typeof config.headers.delete === 'function') {
+        config.headers.delete('Content-Type');
+      } else {
+        delete config.headers['Content-Type'];
+      }
+    }
     return config;
   });
 
@@ -35,6 +42,11 @@ export function createHttpClient(): AxiosInstance {
       }
 
       let message = error.response?.data?.message;
+      const validationErrors = error.response?.data?.errors as Record<string, string[]> | undefined;
+      if (validationErrors) {
+        const first = Object.values(validationErrors).flat()[0];
+        if (first) message = first;
+      }
 
       if (!message) {
         const code = error.code ?? '';
@@ -46,7 +58,9 @@ export function createHttpClient(): AxiosInstance {
 
         message = isNetworkFailure
           ? `Cannot reach API at ${API_BASE_URL}. Start the backend: ./start-backend.sh (and ensure MySQL is running).`
-          : error.message || 'Request failed';
+          : status === 500
+            ? 'Server error — deploy the latest backend and run the database upgrade for multi-file uploads.'
+            : error.message || 'Request failed';
       }
 
       return Promise.reject({

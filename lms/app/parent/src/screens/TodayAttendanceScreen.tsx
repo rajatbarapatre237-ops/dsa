@@ -29,7 +29,7 @@ export default function TodayAttendanceScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const att = data?.today_attendance;
   const child = data?.child;

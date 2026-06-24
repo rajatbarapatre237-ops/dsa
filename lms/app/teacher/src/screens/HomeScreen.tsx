@@ -72,7 +72,7 @@ export default function HomeScreen() {
     [beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const data = summary?.dashboard;
   const teacher = data?.teacher;

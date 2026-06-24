@@ -39,7 +39,9 @@ export function AssignmentListItem({
   const subject = String(item.subject_name ?? '').trim();
   const isLink = String(item.type ?? '').toLowerCase() === 'link';
   const isActive = item.status === 1 || item.status === '1' || item.status === true;
-  const metaParts = [subject, batch, isLink ? 'Link' : 'File', isActive ? 'Active' : 'Hidden'].filter(Boolean);
+  const fileCount = Number(item.file_count ?? 0);
+  const fileLabel = isLink ? 'Link' : fileCount > 1 ? `${fileCount} files` : 'File';
+  const metaParts = [subject, batch, fileLabel, isActive ? 'Active' : 'Hidden'].filter(Boolean);
 
   return (
     <Pressable style={({ pressed }) => [styles.listItem, pressed && styles.pressed]} onPress={onPress}>
@@ -61,7 +63,7 @@ export function AssignmentListItem({
       </View>
       <View style={[styles.typeBadge, isLink ? styles.typeLink : styles.typeFile]}>
         <Text style={[styles.typeText, platformWeight('800'), isLink ? styles.typeLinkText : styles.typeFileText]}>
-          {isLink ? 'Link' : 'File'}
+          {fileLabel}
         </Text>
       </View>
       <AppIcon name="chevron-forward" size={18} color={theme.muted} />
@@ -172,6 +174,34 @@ export function AssignmentStatusToggle({
         </Text>
       </View>
       <Switch value={active} onValueChange={onChange} trackColor={{ true: PRIMARY, false: '#cbd5e1' }} />
+    </View>
+  );
+}
+
+export function AssignmentFilesList({
+  files,
+  onOpen,
+}: {
+  files: { index: number; name: string }[];
+  onOpen: (index: number) => void;
+}) {
+  if (!files.length) return null;
+
+  return (
+    <View style={styles.filesCard}>
+      <Text style={[styles.filesTitle, platformWeight('800')]}>Attached files ({files.length})</Text>
+      {files.map((file, idx) => (
+        <Pressable
+          key={`${file.index}-${file.name}`}
+          style={[styles.fileRow, idx === files.length - 1 && styles.fileRowLast]}
+          onPress={() => onOpen(file.index)}>
+          <AppIcon name="document-text-outline" family="ionicons" size={18} color={PRIMARY} />
+          <Text style={[styles.fileRowText, platformWeight('600')]} numberOfLines={2}>
+            {file.name}
+          </Text>
+          <AppIcon name="chevron-forward" size={18} color={theme.muted} />
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -362,4 +392,23 @@ const styles = StyleSheet.create({
   toggleBody: { flex: 1 },
   toggleTitle: { fontSize: 15, color: theme.text },
   toggleSub: { fontSize: 12, color: theme.muted, marginTop: 3, lineHeight: 17 },
+  filesCard: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  filesTitle: { fontSize: 15, color: theme.text, marginBottom: 10 },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  fileRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
+  fileRowText: { flex: 1, fontSize: 14, color: theme.text },
 });

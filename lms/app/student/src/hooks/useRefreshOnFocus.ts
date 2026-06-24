@@ -1,10 +1,15 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
-export function useRefreshOnFocus(load: () => void | Promise<void>) {
+type LoadFn = (options?: { showRefresh?: boolean }) => void | Promise<void>;
+
+export function useRefreshOnFocus(load: LoadFn) {
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      loadRef.current({ showRefresh: false });
+    }, []),
   );
 }

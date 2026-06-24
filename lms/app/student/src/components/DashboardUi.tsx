@@ -226,6 +226,86 @@ export function AttendanceOverviewCard({
   return content;
 }
 
+function formatMoney(value?: string | number | null) {
+  const num = Number(value ?? 0);
+  if (Number.isNaN(num)) return '—';
+  return `₹${num.toLocaleString('en-IN')}`;
+}
+
+export function PendingFeesCard({
+  totalFees,
+  balance,
+  paid,
+  onPress,
+}: {
+  totalFees: number;
+  balance: number;
+  paid: number;
+  onPress?: () => void;
+}) {
+  const cleared = balance <= 0;
+  const paidPercent = totalFees > 0 ? Math.min(100, Math.round((paid / totalFees) * 100)) : 100;
+
+  const content = (
+    <View style={[styles.feesCard, cleared ? styles.feesCardCleared : styles.feesCardPending]}>
+      <View style={styles.feesHeader}>
+        <View style={styles.feesIconWrap}>
+          <AppIcon
+            name={cleared ? 'checkmark-circle-outline' : 'wallet-outline'}
+            family="ionicons"
+            size={22}
+            color={cleared ? theme.success : theme.warning}
+          />
+        </View>
+        <View style={styles.feesHeaderText}>
+          <Text style={styles.feesEyebrow}>Fees</Text>
+          <Text style={styles.feesTitle}>{cleared ? 'No pending fees' : 'Pending fees'}</Text>
+        </View>
+        <View style={[styles.feesAmountBubble, cleared && styles.feesAmountBubbleCleared]}>
+          <Text style={[styles.feesAmount, cleared && styles.feesAmountCleared]}>
+            {formatMoney(balance)}
+          </Text>
+          <Text style={styles.feesAmountLabel}>{cleared ? 'Cleared' : 'Due'}</Text>
+        </View>
+      </View>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${paidPercent}%` }]} />
+      </View>
+      <View style={styles.feesStats}>
+        <View style={styles.feesStat}>
+          <Text style={styles.feesStatValue}>{formatMoney(totalFees)}</Text>
+          <Text style={styles.feesStatLabel}>Total fees</Text>
+        </View>
+        <View style={styles.feesStat}>
+          <Text style={[styles.feesStatValue, { color: theme.success }]}>{formatMoney(paid)}</Text>
+          <Text style={styles.feesStatLabel}>Paid</Text>
+        </View>
+        <View style={styles.feesStat}>
+          <Text style={[styles.feesStatValue, cleared ? { color: theme.success } : { color: theme.warning }]}>
+            {formatMoney(balance)}
+          </Text>
+          <Text style={styles.feesStatLabel}>Pending</Text>
+        </View>
+      </View>
+      {onPress ? (
+        <View style={styles.viewDetailsRow}>
+          <Text style={styles.viewDetailsText}>View payment history</Text>
+          <AppIcon name="chevron-forward" size={16} color={PRIMARY} />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressedCard}>
+        {content}
+      </Pressable>
+    );
+  }
+  return content;
+}
+
 export function MonthAttendanceSummary({
   monthLabel,
   present,
@@ -619,6 +699,61 @@ const styles = StyleSheet.create({
   monthStatAbsent: { backgroundColor: '#fef2f2' },
   monthStatValue: { fontSize: 20, fontWeight: '800', color: theme.text },
   monthStatLabel: { fontSize: 10, fontWeight: '700', color: theme.muted, marginTop: 4 },
+  feesCard: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  feesCardPending: { borderColor: '#fde68a' },
+  feesCardCleared: { borderColor: '#bbf7d0' },
+  feesHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  feesIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feesHeaderText: { flex: 1 },
+  feesEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  feesTitle: { fontSize: 17, fontWeight: '800', color: theme.text, marginTop: 2 },
+  feesAmountBubble: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    minWidth: 84,
+  },
+  feesAmountBubbleCleared: { backgroundColor: '#ecfdf3' },
+  feesAmount: { fontSize: 16, fontWeight: '800', color: theme.warning },
+  feesAmountCleared: { color: theme.success },
+  feesAmountLabel: { fontSize: 10, fontWeight: '700', color: theme.muted, marginTop: 2 },
+  feesStats: { flexDirection: 'row', gap: 8 },
+  feesStat: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  feesStatValue: { fontSize: 14, fontWeight: '800', color: theme.text },
+  feesStatLabel: { fontSize: 10, fontWeight: '700', color: theme.muted, marginTop: 4 },
   recentCard: {
     backgroundColor: theme.card,
     borderRadius: 20,

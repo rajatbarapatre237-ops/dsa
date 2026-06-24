@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
 use App\Support\AssignmentContent;
+use App\Support\AssignmentDocuments;
 use App\Support\AssignmentFiles;
+use App\Support\TransactionHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,12 +66,18 @@ class StudentController extends Controller
         $batch = $profile->batch ?? '';
         $kind = $request->query('content_kind');
         $subjectId = $request->query('subject_id');
+        $subjectName = trim((string) $request->query('subject_name', ''));
 
-        $rows = DB::table('assignement')
+        $query = DB::table('assignement')
             ->where('batch_name', $batch)
-            ->where('status', 1)
-            ->when(in_array($kind, ['assignment', 'note'], true), fn ($q) => $q->where('content_kind', $kind))
-            ->when($subjectId, fn ($q) => $q->where('subject_id', (int) $subjectId))
+            ->where('status', 1);
+
+        $rows = AssignmentContent::applyKindFilter($query, is_string($kind) ? $kind : null)
+            ->when($subjectId && AssignmentContent::hasSubjectIdColumn(), fn ($q) => $q->where('subject_id', (int) $subjectId))
+            ->when(
+                ! $subjectId && $subjectName !== '' && AssignmentContent::hasSubjectNameColumn(),
+                fn ($q) => $q->where('subject_name', $subjectName),
+            )
             ->orderByDesc('id')
             ->get()
             ->map(fn ($row) => AssignmentContent::formatRow($row));
@@ -87,14 +95,25 @@ class StudentController extends Controller
             $kind = 'assignment';
         }
 
+        $fromContent = AssignmentContent::subjectsWithCountsForBatch($batch, $kind)
+            ->map(fn ($row) => [
+                'id' => $row->subject_id ? (int) $row->subject_id : null,
+                'subject_name' => trim((string) ($row->subject_name ?? '')) ?: 'General',
+                'item_count' => (int) $row->item_count,
+            ])
+            ->filter(fn (array $subject) => $subject['item_count'] > 0)
+            ->values();
+
+        if ($fromContent->isNotEmpty() || $kind === 'note') {
+            return response()->json([
+                'status' => 'success',
+                'content_kind' => $kind,
+                'subjects' => $fromContent,
+            ]);
+        }
+
         $courseSubjects = AssignmentContent::subjectsForCourse($profile->course_name ?? null);
-        $counts = DB::table('assignement')
-            ->where('batch_name', $batch)
-            ->where('status', 1)
-            ->where('content_kind', $kind)
-            ->selectRaw('subject_id, subject_name, COUNT(*) as item_count')
-            ->groupBy('subject_id', 'subject_name')
-            ->get()
+        $counts = AssignmentContent::subjectsWithCountsForBatch($batch, $kind)
             ->keyBy(fn ($row) => (string) ($row->subject_id ?: $row->subject_name ?: 'general'));
 
         $subjects = $courseSubjects->map(function ($subject) use ($counts) {
@@ -159,14 +178,17 @@ class StudentController extends Controller
             return response()->json(['status' => 'error', 'message' => 'File not found'], 404);
         }
 
-        $path = AssignmentFiles::resolvePath((string) $row->document);
+        $index = max(0, (int) $request->query('index', 0));
+        $path = AssignmentDocuments::resolvePath((string) $row->document, $index);
         if (! $path) {
             return response()->json(['status' => 'error', 'message' => 'File missing on server'], 404);
         }
 
+        $filename = AssignmentDocuments::resolveName((string) $row->document, $index);
+
         return response()->file($path, [
             'Content-Type' => AssignmentFiles::mimeType($path),
-            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
 
@@ -205,12 +227,7 @@ class StudentController extends Controller
     public function transactions(Request $request): JsonResponse
     {
         $id = $this->studentId($request);
-        $rows = DB::table('transaction_history')
-            ->where(function ($query) use ($id) {
-                $query->where('user_id', $id)->orWhere('sid', $id);
-            })
-            ->orderByDesc('id')
-            ->get();
+        $rows = TransactionHistory::forStudent($id);
 
         return response()->json(['status' => 'success', 'transactions' => $rows]);
     }

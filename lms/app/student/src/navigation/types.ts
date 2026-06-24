@@ -23,7 +23,7 @@ export type AssignmentsStackParamList = {
   };
   AssignmentsList: undefined;
   AssignmentDetail: { id: number };
-  AssignmentFile: { id: number };
+  AssignmentFile: { id: number; index?: number };
 };
 
 export type AccountStackParamList = {

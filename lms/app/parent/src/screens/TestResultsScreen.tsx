@@ -51,7 +51,7 @@ export default function TestResultsScreen({ allMarks }: { allMarks?: boolean }) 
     [allMarks, beginLoad, endLoad, markHasData],
   );
 
-  useRefreshOnFocus(() => load());
+  useRefreshOnFocus(load);
 
   const sorted = useMemo(() => sortByDateDesc(items), [items]);
   const subjects = useMemo(() => uniqueSubjectNames(sorted), [sorted]);

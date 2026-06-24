@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\Parent;
 
 use App\Http\Controllers\Controller;
+use App\Support\AssignmentDocuments;
 use App\Support\AssignmentFiles;
+use App\Support\TransactionHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -78,15 +80,26 @@ class ParentController extends Controller
             return response()->json(['status' => 'error', 'message' => 'File not found'], 404);
         }
 
-        $path = AssignmentFiles::resolvePath((string) $row->document);
+        $index = max(0, (int) $request->query('index', 0));
+        $path = AssignmentDocuments::resolvePath((string) $row->document, $index);
         if (! $path) {
             return response()->json(['status' => 'error', 'message' => 'File missing on server'], 404);
         }
 
+        $filename = AssignmentDocuments::resolveName((string) $row->document, $index);
+
         return response()->file($path, [
             'Content-Type' => AssignmentFiles::mimeType($path),
-            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
+    }
+
+    public function transactions(Request $request): JsonResponse
+    {
+        $id = $this->childId($request);
+        $rows = TransactionHistory::forStudent($id);
+
+        return response()->json(['status' => 'success', 'transactions' => $rows]);
     }
 
     public function classTestResults(Request $request): JsonResponse

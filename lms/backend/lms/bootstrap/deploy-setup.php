@@ -98,6 +98,7 @@ return function (): array {
         ];
     }
 
+    $steps[] = $runArtisan('route:clear');
     $steps[] = $runArtisan('config:cache');
     $steps[] = $runArtisan('route:cache');
     $steps[] = $runArtisan('storage:link');

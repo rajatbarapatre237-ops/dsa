@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\PublicAssignmentFileController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\SetupController;
 use App\Livewire\Dashboard\ContactQueries;
@@ -18,6 +19,18 @@ Route::post('/contact', [ContactController::class, 'store'])->name('contact.stor
 
 Route::get('/setup', SetupController::class)->name('setup');
 Route::redirect('/deploy/setup', '/setup');
+
+Route::get('/assignments/download/{id}', [PublicAssignmentFileController::class, 'showById'])
+    ->whereNumber('id')
+    ->name('assignments.download');
+
+Route::get('/assignments/files/{filename}', [PublicAssignmentFileController::class, 'show'])
+    ->where('filename', '[^/]+')
+    ->name('assignments.file');
+
+Route::get('/storage/assignments/{filename}', [PublicAssignmentFileController::class, 'show'])
+    ->where('filename', '[^/]+')
+    ->name('assignments.storage');
 
 Route::middleware('dashboard.guest')->group(function () {
     Route::livewire('/admin', Login::class)->name('dashboard.login');
